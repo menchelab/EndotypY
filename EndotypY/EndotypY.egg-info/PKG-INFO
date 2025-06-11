@@ -1,0 +1,53 @@
+Metadata-Version: 2.4
+Name: EndotypY
+Version: 0.1
+Summary: A short description of your package
+Home-page: https://github.com/yourusername/EndotypY
+Author: Your Name
+Author-email: mathilde.meyenberg@univie.ac.at
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: gprofiler-official
+Requires-Dist: networkx
+Requires-Dist: scikit-learn
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: scipy
+Requires-Dist: tqdm
+Requires-Dist: mygene
+Requires-Dist: gseapy
+Requires-Dist: threadpoolctl
+Requires-Dist: biopython
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# EndotypY
+
+A short description of your package.
+
+## Installation
+
+```sh
+pip install EndotypY
+```
+
+## Usage
+
+```python
+from EndotypY import module1
+module1.some_function()
+```
