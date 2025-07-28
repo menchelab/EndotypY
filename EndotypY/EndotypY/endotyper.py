@@ -33,11 +33,10 @@ class Endotyper:
         self.disease_module = None
         self.connected_subgraph = None
 
-    #for simplicity I do not show the option of
-    # pubmed filtering here, but it can be added later
     def import_network(self, network_file:str):
         self.network = read_network_from_file(network_file)
         print("network imported successfully")
+        print(f"> Network contains {self.network.number_of_nodes()} nodes and {self.network.number_of_edges()} edges")
 
     def import_seeds(self, seeds_file:str):
         self.seeds = load_seed_set_from_file(seeds_file)
