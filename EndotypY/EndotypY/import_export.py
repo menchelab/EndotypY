@@ -70,7 +70,7 @@ def read_network_from_file(network_file: Union[str, Path]) -> nx.Graph:
             node1, node2 = line_data[0], line_data[1]
 
             # Convert nodes to integers
-            node1, node2 = int(node1), int(node2)
+            node1, node2 = node1, node2
 
             # Add edge to the graph
             if node1 != node2:  # Avoid self-loops

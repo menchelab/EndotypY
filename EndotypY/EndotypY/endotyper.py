@@ -1,5 +1,4 @@
 from .import_export import read_network_from_file, load_seed_set_from_file
-from .utils import *
 from .prepare_rwr import prepare_rwr
 from .rwr import rwr
 
