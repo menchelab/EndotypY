@@ -122,3 +122,13 @@ def calculate_top_genes(G, input_gene_list, scaling, W, Dinvsqrt, d_ensembl_idx,
         top_genes[gene] = [x for x in top_genes[gene] if isinstance(x, str)]
     
     return top_genes
+
+
+#TODO
+
+# there is a lot of code duplication there
+# I need to refactor the gene specific RWR to make sure that the
+# scores are calculated only once and then used for all genes
+# the current implementation runs RWR for each gene separately does not return scores
+# do I need the scores really to caluclate the top genes or
+# can I just the use the length of the list to calculate how many genes would be in the top 1%?

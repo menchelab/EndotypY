@@ -7,6 +7,15 @@ import pickle
 from tqdm import tqdm #type: ignore
 
 
+def prep_rwr(G, r = 0.8):
+    rwr_matrix = _colwise_rnd_walk_matrix(G, r)
+    scaling_matrix = _create_scaling_matrix(G)
+    d_ensembl_idx, d_idx_ensembl = _create_mapping_index_ensemblID(G)
+    return rwr_matrix, scaling_matrix, d_ensembl_idx, d_idx_ensembl
+
+#-------------------------------------------------------------
+
+
 def _colwise_rnd_walk_matrix(G, r, a=1.0):
     """
     Compute the Random Walk Matrix (RWM) for a given graph G with teleportation
@@ -101,9 +110,3 @@ def _create_scaling_matrix(G):
         cc += 1
 
     return Dinvsqrt
-
-def prepare_rwr(G, r = 0.8):
-    rwr_matrix = _colwise_rnd_walk_matrix(G, r)
-    scaling_matrix = _create_scaling_matrix(G)
-    d_ensembl_idx, d_idx_ensembl = _create_mapping_index_ensemblID(G)
-    return rwr_matrix, scaling_matrix, d_ensembl_idx, d_idx_ensembl

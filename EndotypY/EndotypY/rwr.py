@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+from tqdm import tqdm #type: ignore
 
 
 
@@ -31,11 +32,11 @@ def rwr(G, seed_genes, scaling, W, Dinvsqrt, d_ensembl_idx, d_idx_ensembl, k=200
 
     p0 = np.zeros(n_nodes)
 
-    # select only the seed genes are on the PPI network
-    seed_genes_on_PPI = [gene for gene in seed_genes if gene in d_ensembl_idx.keys()]
+    # select only the seed genes are in the network
+    seed_genes_in_graph = [gene for gene in seed_genes if gene in d_ensembl_idx.keys()]
 
     # initialize (with optional scaling) of the visiting probability vector
-    for gene in seed_genes_on_PPI:
+    for gene in seed_genes_in_graph:
         if scaling == True:
             deg = G.degree(gene)
             p0[d_ensembl_idx[gene]] = 1 * np.sqrt(deg)
@@ -51,7 +52,7 @@ def rwr(G, seed_genes, scaling, W, Dinvsqrt, d_ensembl_idx, d_idx_ensembl, k=200
     # create dictionary of gene IDs and their corresponding visiting probability in sorted order
     d_gene_pvis_sorted = {}
     for p, x in sorted(zip(pinf, range(len(pinf))), reverse=True):
-        d_gene_pvis_sorted[d_idx_ensembl[x]] = p / len(seed_genes_on_PPI)
+        d_gene_pvis_sorted[d_idx_ensembl[x]] = p / len(seed_genes_in_graph)
 
     # obtain the ranking without seed genes
     rwr_rank_without_seed_genes = [
@@ -59,10 +60,10 @@ def rwr(G, seed_genes, scaling, W, Dinvsqrt, d_ensembl_idx, d_idx_ensembl, k=200
     ]
 
     # select the top X ranked genes
-    disease_module = [g for g in seed_genes_on_PPI]
+    disease_module = [g for g in seed_genes_in_graph]
     disease_module.extend(rwr_rank_without_seed_genes[:k])
 
-    # if the disease module is not connected, add the next ranked genes until it is connected
+    #if the disease module is not connected, add the next ranked genes until it is connected
     i = 0
     subgraph = nx.subgraph(G, disease_module)
     while not nx.is_connected(subgraph):
@@ -71,3 +72,29 @@ def rwr(G, seed_genes, scaling, W, Dinvsqrt, d_ensembl_idx, d_idx_ensembl, k=200
         i += 1
 
     return disease_module, nx.subgraph(G, disease_module)
+
+
+def rwr_from_individual_genes(seed_genes, G, scaling, rwr_matrix, scaling_matrix, d_ensembl_idx, d_idx_ensembl, k=200):
+    """
+    run RWR on every single gene and store the list of candidate genes
+    """
+
+    d_rwr_individuals_ind = {}
+
+    # compute the RWR for each set of seed genes
+
+    for gene in tqdm(seed_genes, desc="Running RWR for seed genes"):
+        connected_disease_module, _ = rwr(
+            G,
+            [gene],
+            scaling,
+            rwr_matrix,
+            scaling_matrix,
+            d_ensembl_idx,
+            d_idx_ensembl,
+            k
+        )
+
+        d_rwr_individuals_ind[gene] = connected_disease_module
+
+    return d_rwr_individuals_ind
