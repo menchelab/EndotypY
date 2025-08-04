@@ -10,8 +10,8 @@ from tqdm import tqdm #type: ignore
 def prep_rwr(G, r = 0.8):
     rwr_matrix = _colwise_rnd_walk_matrix(G, r)
     scaling_matrix = _create_scaling_matrix(G)
-    d_ensembl_idx, d_idx_ensembl = _create_mapping_index_ensemblID(G)
-    return rwr_matrix, scaling_matrix, d_ensembl_idx, d_idx_ensembl
+    d_idx_ensembl = _create_mapping_index(G)
+    return rwr_matrix, scaling_matrix, d_idx_ensembl
 
 #-------------------------------------------------------------
 
@@ -25,7 +25,7 @@ def _colwise_rnd_walk_matrix(G, r, a=1.0):
     Parameters:
         G: (networkx graph) input graph
         r: (float) damping factor/restart probability
-        a: (float) teleportation probability
+        a: (float) 1 - teleportation probability
 
     Returns:
         W: (numpy array) RWM of the input graph G
@@ -67,7 +67,7 @@ def _colwise_rnd_walk_matrix(G, r, a=1.0):
     return W
 
 
-def _create_mapping_index_ensemblID(G):
+def _create_mapping_index(G):
     """
     Create the dictionaries to map genes' Ensembl IDs to indices and vice-versa.
 
@@ -84,9 +84,10 @@ def _create_mapping_index_ensemblID(G):
     for ensembl in sorted(G.nodes()):
         d_idx_ensembl[cc] = ensembl
         cc += 1
-    d_ensembl_idx = dict((y, x) for x, y in d_idx_ensembl.items())
+    
+    #d_ensembl_idx = dict((y, x) for x, y in d_idx_ensembl.items())
 
-    return d_ensembl_idx, d_idx_ensembl
+    return d_idx_ensembl
 
 
 def _create_scaling_matrix(G):

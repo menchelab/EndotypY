@@ -1,23 +1,22 @@
 import os
 import pickle
 from collections import defaultdict as dd
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt #type: ignore
+from tqdm import tqdm #type: ignore
 
-from EndotypY.rwr import rwr_from_individual_genes
+from EndotypY.rwr import rwr_from_individual_genes, extract_connected_module
 
 
 def run_seed_clustering(G, 
                         seed_genes, 
                         scaling, 
                         rwr_matrix, 
-                        scaling_matrix, 
-                        d_ensembl_idx, 
-                        d_idx_ensembl, k):
+                        scaling_matrix,
+                        d_idx_ensembl, k_max=200):
     """
     Run the seed clustering process.
     This function computes the RWR for each seed gene, clusters them based on
     their neighborhoods, and plots the results.
-    It also saves the clustered seed genes to a pickle file.
     
     Parameters:
         - G: NetworkX graph representing the connected protein-protein interaction network.
@@ -25,8 +24,8 @@ def run_seed_clustering(G,
         - scaling: Scaling matrix for the RWR algorithm.
         - rwr_matrix: RWR matrix for the graph.
         - scaling_matrix: Scaling matrix for the graph.
-        - d_ensembl_idx: Dictionary mapping Ensembl IDs to indices.
         - d_idx_ensembl: Dictionary mapping indices to Ensembl IDs.
+        - k_max: Maximum neighborhood size to test.
     """
     
     # RUN RWR FOR EACH SEED GENE
@@ -36,25 +35,23 @@ def run_seed_clustering(G,
         scaling=scaling, 
         rwr_matrix=rwr_matrix,
         scaling_matrix=scaling_matrix, 
-        d_ensembl_idx=d_ensembl_idx, 
-        d_idx_ensembl=d_idx_ensembl,
-        k = k
+        d_idx_ensembl=d_idx_ensembl
         )
          
     # TEST THE CLUSTERING OVER DIFFERENT NEIGHBORHOODS
     n_cluster_size_1 = []
     n_clusters = []
-    tested_neighborhoods = list(range(10, 201, 10))
+    tested_neighborhoods = list(range(10, min(k_max + 1, 201), 10))
     
     for k in tested_neighborhoods:
 
-        raw_clusters, clustered_seed_genes = _cluster_seed_genes(seed_genes, d_rwr_individuals, rwr_threshold=k)
+        _, clustered_seed_genes = _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold=k)
         n_clusters.append(len(clustered_seed_genes))
         sizes = [len(c) for c in clustered_seed_genes]
         n_cluster_size_1.append(sizes.count(1))
      
     # FIND THE FIRST PLATEAU
-    plateau_start = _find_first_plateau(n_clusters, tested_neighborhoods, seed_genes, d_rwr_individuals)
+    plateau_start = _find_first_plateau(G, n_clusters, tested_neighborhoods, seed_genes, d_rwr_individuals)
     
     # PLOT THE RESULTS
     plt.figure(figsize=(8, 6))
@@ -87,60 +84,8 @@ def run_seed_clustering(G,
 
 
 #-------------------------------------------------------------
-
-
-def _cluster_seed_genes(seed_genes, d_rwr_individuals, rwr_threshold):
-    
-    """
-    Clusters seed genes based on their neighborhoods obtained via RWR, allowing
-    overlapping clusters.
-    Each seed gene is assigned to a cluster based on its neighborhood, and
-    overlapping clusters are merged iteratively.
-    
-    Parameters:
-        - seed_genes (list): List of seed genes.
-        - d_rwr_individuals (dict): Dictionary containing the RWR expansion
-                            for each gene.
-        - rwr_threshold (int): Threshold for neighborhood size to consider
-                            for clustering.
-    
-    Returns:
-        - clusters (dict): Dictionary where keys are seed genes and values
-                           are lists of overlapping seed genes.
-        - merged_clusters (list): List of merged clusters after iteratively 
-                           merging overlapping clusters.
-    """
-    
-    clusters = dd(list)
-
-    # Create clusters of seed genes based on the RWR neighborhoods
-    for seed in seed_genes:
-        neighborhood = list(d_rwr_individuals[seed][:rwr_threshold])
-        cluster = [node for node in neighborhood if node in seed_genes]
-        clusters[seed] = cluster
-
-    merged_clusters = list(clusters.values())
-
-    # Iteratively merge overlapping clusters until no further merges are possible
-    merged = True
-    while merged:
-        merged = False
-        for i in range(len(merged_clusters)):
-            for j in range(i + 1, len(merged_clusters)):
-                if set(merged_clusters[i]) & set(merged_clusters[j]):
-                    # Merge and break to restart the process
-                    merged_clusters[i] = list(set(merged_clusters[i] + merged_clusters[j]))
-                    del merged_clusters[j]
-                    merged = True
-                    break
-            if merged:
-                break
-
-    return clusters, merged_clusters
-
-
-
-def _find_first_plateau(cluster_counts, 
+def _find_first_plateau(G,
+                       cluster_counts, 
                        neighborhood_sizes, 
                        seed_genes, 
                        d_rwr_individuals, 
@@ -178,12 +123,64 @@ def _find_first_plateau(cluster_counts,
                         for j in range(min_plateau_length))
         
         if is_plateau:
-            raw_clusters, clustered_seed_genes = _cluster_seed_genes(
-                seed_genes, 
-                d_rwr_individuals, 
+            _, clustered_seed_genes = _cluster_seed_genes(
+                G,
+                seed_genes,
+                d_rwr_individuals,
                 rwr_threshold=neighborhood_sizes[i]
                 )
             
             return neighborhood_sizes[i], current_value, clustered_seed_genes
             
     return None, None, seed_genes
+
+def _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold):
+    
+    """
+    Clusters seed genes based on their neighborhoods obtained via RWR, allowing
+    overlapping clusters.
+    Each seed gene is assigned to a cluster based on its neighborhood, and
+    overlapping clusters are merged iteratively.
+    
+    Parameters:
+        - seed_genes (list): List of seed genes.
+        - d_rwr_individuals (dict): Dictionary containing the RWR expansion
+                            for each gene.
+        - rwr_threshold (int): Threshold for neighborhood size to consider
+                            for clustering.
+    
+    Returns:
+        - clusters (dict): Dictionary where keys are seed genes and values
+                           are lists of overlapping seed genes.
+        - merged_clusters (list): List of merged clusters after iteratively 
+                           merging overlapping clusters.
+    """
+    
+    clusters = dd(list)
+
+    # Create clusters of seed genes based on the RWR neighborhoods
+    for seed in seed_genes:
+        # d_rwr_individuals[seed] is now directly the gene probabilities dictionary
+        gene_probabilities = d_rwr_individuals[seed]
+        neighborhood, _ = extract_connected_module(G, [seed], gene_probabilities, k=rwr_threshold) 
+        cluster = [node for node in neighborhood if node in seed_genes]
+        clusters[seed] = cluster
+
+    merged_clusters = list(clusters.values())
+
+    # Iteratively merge overlapping clusters until no further merges are possible
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(merged_clusters)):
+            for j in range(i + 1, len(merged_clusters)):
+                if set(merged_clusters[i]) & set(merged_clusters[j]):
+                    # Merge and break to restart the process
+                    merged_clusters[i] = list(set(merged_clusters[i] + merged_clusters[j]))
+                    del merged_clusters[j]
+                    merged = True
+                    break
+            if merged:
+                break
+
+    return clusters, merged_clusters

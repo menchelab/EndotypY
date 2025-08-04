@@ -3,98 +3,71 @@ import numpy as np
 from tqdm import tqdm #type: ignore
 
 
+def make_p0(G, seeds, scaling:bool):
+    nodelist = sorted(G.nodes())
+    p0 = np.zeros(len(nodelist))
 
-def rwr(G, seed_genes, scaling, W, Dinvsqrt, d_ensembl_idx, d_idx_ensembl, k=200):
-    """
-    Perform the random walk process (column-wise normalized, with scaling or not),
-    find the visiting probability to each node and determine the top-k ranked genes,
-    more in case the resulting module is not connected.
-    The function writes the results (all ranked genes with their visiting probability)
-    and outputs the connected disease module.
+    for idx, node in enumerate(nodelist):
+        if node in seeds:
+            if scaling:
+                deg = G.degree(node)
+                p0[idx] = 1 * np.sqrt(deg)
+            else:
+                p0[idx] = 1
+    return p0
 
-    Parameters:
-        G:                  (networkx graph) input graph
-        seed_genes:         (set) seed genes
-        scaling:            (boolean) scales the visiting probabilities with the sqrt
-                            of the degree of the corresponding node
-        W:                  (numpy array) random walk matrix
-        Dinvsqrt:           (numpy array) diagonal matrix of the inverse degree of the nodes
-        d_ensembl_idx:      (dict) dictionary of gene Ensembl IDs and their corresponding index
-        d_idx_ensembl:      (dict) dictionary of gene indices and their corresponding Ensembl ID
-        
-    Returns:
-        connected_disease_module:   list of genes containing the seed genes and the top-k
-                                    ranked genes that form a connected component on the
-                                    interactome
-    """
+def rwr(G, seed_genes, scaling, rwr_matrix, scaling_matrix, d_idx_ensembl):
 
-    n_nodes = G.number_of_nodes()
-
-    p0 = np.zeros(n_nodes)
-
-    # select only the seed genes are in the network
-    seed_genes_in_graph = [gene for gene in seed_genes if gene in d_ensembl_idx.keys()]
-
-    # initialize (with optional scaling) of the visiting probability vector
-    for gene in seed_genes_in_graph:
-        if scaling == True:
-            deg = G.degree(gene)
-            p0[d_ensembl_idx[gene]] = 1 * np.sqrt(deg)
-        else:
-            p0[d_ensembl_idx[gene]] = 1.0
+    p0 = make_p0(G, seed_genes, scaling)
 
     # apply the RW operator on the visiting probability vector (with optional scaling)
-    if scaling == True:
-        pinf = np.array(np.dot(Dinvsqrt, np.dot(W, p0)))
+    if scaling:
+        pinf = np.array(np.dot(scaling_matrix, np.dot(rwr_matrix, p0)))
     else:
-        pinf = np.dot(W, p0)
+        pinf = np.dot(rwr_matrix, p0)
 
-    # create dictionary of gene IDs and their corresponding visiting probability in sorted order
-    d_gene_pvis_sorted = {}
-    for p, x in sorted(zip(pinf, range(len(pinf))), reverse=True):
-        d_gene_pvis_sorted[d_idx_ensembl[x]] = p / len(seed_genes_in_graph)
+    # Map probabilities to gene names
+    gene_probabilities = {d_idx_ensembl[i]: prob for i, prob in enumerate(pinf)}
 
-    # obtain the ranking without seed genes
+    return gene_probabilities
+
+
+def rwr_from_individual_genes(G, seed_genes, scaling:bool,
+                              rwr_matrix, scaling_matrix, d_idx_ensembl):
+    """
+    Run RWR starting from every single gene in seed_genes
+    and store the results.
+    """
+    rwr_per_gene = {}
+
+    for gene in tqdm(seed_genes, desc="Running RWR for seed genes"):
+        rwr_per_gene[gene] = rwr(G, [gene], scaling,
+                                 rwr_matrix, scaling_matrix,
+                                 d_idx_ensembl)
+    return rwr_per_gene
+
+def extract_connected_module(G, seed_genes, rwr_results, k:int):
+    # Sort the genes by their visiting probabilities in descending order
+    d_gene_pvis_sorted = dict(sorted(rwr_results.items(), key=lambda item: item[1], reverse=True))
+
+    #obtain the ranking without seed genes
     rwr_rank_without_seed_genes = [
-        g for g in list(d_gene_pvis_sorted.keys()) if g not in seed_genes
-    ]
+        g for g in list(d_gene_pvis_sorted.keys()) if g not in seed_genes]
 
-    # select the top X ranked genes
-    disease_module = [g for g in seed_genes_in_graph]
-    disease_module.extend(rwr_rank_without_seed_genes[:k])
+    # form disease module
+    disease_module = [g for g in seed_genes if g in G.nodes()] #seed genes in the graph
+    disease_module.extend(rwr_rank_without_seed_genes[:k]) #extending disease module with the top ranked genes up to k
 
     #if the disease module is not connected, add the next ranked genes until it is connected
     i = 0
     subgraph = nx.subgraph(G, disease_module)
-    while not nx.is_connected(subgraph):
-        disease_module.append(rwr_rank_without_seed_genes[k + i])
-        subgraph = nx.subgraph(G, disease_module)
+    
+    # Add protection against infinite loop
+    max_iterations = len(rwr_rank_without_seed_genes) - k
+    while not nx.is_connected(subgraph) and i < max_iterations:
+        if k + i < len(rwr_rank_without_seed_genes):
+            disease_module.append(rwr_rank_without_seed_genes[k + i])
+            subgraph = nx.subgraph(G, disease_module)
         i += 1
 
     return disease_module, nx.subgraph(G, disease_module)
-
-
-def rwr_from_individual_genes(seed_genes, G, scaling, rwr_matrix, scaling_matrix, d_ensembl_idx, d_idx_ensembl, k=200):
-    """
-    run RWR on every single gene and store the list of candidate genes
-    """
-
-    d_rwr_individuals_ind = {}
-
-    # compute the RWR for each set of seed genes
-
-    for gene in tqdm(seed_genes, desc="Running RWR for seed genes"):
-        connected_disease_module, _ = rwr(
-            G,
-            [gene],
-            scaling,
-            rwr_matrix,
-            scaling_matrix,
-            d_ensembl_idx,
-            d_idx_ensembl,
-            k
-        )
-
-        d_rwr_individuals_ind[gene] = connected_disease_module
-
-    return d_rwr_individuals_ind
