@@ -70,7 +70,18 @@ endo.define_endotypes()
 endo.plot_endotype(iteration=1, cluster_id=2, node_size='betweenness', path_length=3)
 ```
 
+
+#### visualize the network
+
+```python
+endo.visualize_network()
+```
+
+![alt text](image.png)
+
+
 #### visualize all endotypes
 ```python
 endo.plot_multiple_endotypes(node_size='degree', path_length=2)
 ```
+![alt text](image-1.png)
