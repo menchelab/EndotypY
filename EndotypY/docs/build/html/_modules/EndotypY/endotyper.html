@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EndotypY.endotyper &mdash; endotypy 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            endotypy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../endotyper.html">Endotyper API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">endotypy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EndotypY.endotyper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EndotypY.endotyper</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.import_export</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_network_from_file</span><span class="p">,</span> <span class="n">load_seed_set_from_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.prepare_rwr</span><span class="w"> </span><span class="kn">import</span> <span class="n">prep_rwr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.rwr</span><span class="w"> </span><span class="kn">import</span> <span class="n">rwr</span><span class="p">,</span> <span class="n">extract_connected_module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.seed_clusters</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_seed_clustering</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.expansion</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_top_genes</span><span class="p">,</span> <span class="n">get_module_neighborhood_terms_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_enrichr_library</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_feature_matrix</span><span class="p">,</span> <span class="n">recursive_endotyping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.visualization</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_endotype</span><span class="p">,</span> <span class="n">plot_multiple_endotypes</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+<div class="viewcode-block" id="Endotyper">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Endotyper</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Endotyper class for endotyping analysis.</span>
+
+<span class="sd">    This class provides methods to perform endotyping analysis using a random walk approach.</span>
+<span class="sd">    It includes methods for reading networks, preparing the random walk matrix, and performing the endotyping analysis.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    ----------</span>
+<span class="sd">    network_file : str | Path</span>
+<span class="sd">        The path to the input network file.</span>
+<span class="sd">    r : float</span>
+<span class="sd">        The damping factor for the random walk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rwr_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_ensembl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disease_module</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected_subgraph</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expanded_neighborhoods</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighborhood_annotation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Endotyper.import_network">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.import_network">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">import_network</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">network_file</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Imports a network from a file.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                network_file (str): Path to the network file.  Supported formats are:</span>
+<span class="sd">                -&#39;.txt&#39; or &#39;.tsv&#39; or &#39;.csv&#39; with two columns representing edges, tab-separated.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                self: The Endotyper object.</span>
+
+<span class="sd">            Notes:</span>
+<span class="sd">                - Lines that start with &#39;#&#39; will be ignored.</span>
+<span class="sd">                - Self-loops are eliminated in the last filtering step</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">read_network_from_file</span><span class="p">(</span><span class="n">network_file</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;network imported successfully&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Network contains </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span><span class="si">}</span><span class="s2"> nodes and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">number_of_edges</span><span class="p">()</span><span class="si">}</span><span class="s2"> edges&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Endotyper.import_seeds">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.import_seeds">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">import_seeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seeds_file</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Imports seeds from a file and sets them as the seeds for the object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seeds_file (str): The path to the seeds file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            self: The Endotyper object.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            - The seeds file should contain a list of seed genes, one per line.</span>
+<span class="sd">            - Alternative formats for the seeds file is tab separated entries on first line of file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span> <span class="o">=</span> <span class="n">load_seed_set_from_file</span><span class="p">(</span><span class="n">seeds_file</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;seeds imported successfully&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+        
+
+<div class="viewcode-block" id="Endotyper.prepare_rwr">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.prepare_rwr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare_rwr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepares the Random Walk with Restart (RWR) matrix.</span>
+
+<span class="sd">            This function computes the RWR matrix based on the network and restart probability,</span>
+<span class="sd">            using the formula (I-r*M)^-1 where M is</span>
+<span class="sd">            the column-wise normalized Markov matrix according to M = A D^{-1}.</span>
+
+<span class="sd">            To provide the option of scaling the visiting probabilities, a scaling matrix is also created,</span>
+<span class="sd">            which is the diagonal matrix of the inverse degree of the nodes in graph G.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                r (float, optional): Damping factor/restart probability. Defaults to 0.8.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                self: Returns the Endotyper object with the RWR matrix, scaling matrix,</span>
+<span class="sd">                      and index to ensembl mapping stored as attributes.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Preparing RWR...&quot;</span><span class="p">)</span>
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rwr_matrix</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">idx_ensembl</span><span class="p">)</span> <span class="o">=</span> <span class="n">prep_rwr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;RWR matrix prepared successfully&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+
+<div class="viewcode-block" id="Endotyper.explore_seed_clusters">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.explore_seed_clusters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">explore_seed_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the seed clustering process.</span>
+<span class="sd">        This function computes the RWR for each seed gene, clusters them based on</span>
+<span class="sd">        their neighborhoods, and plots the results.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            - k_max: Maximum neighborhood size to test.</span>
+<span class="sd">            - scaling: Whether to apply scaling to the RWR.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span> <span class="o">=</span> <span class="n">run_seed_clustering</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span> 
+                        <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span><span class="p">,</span> 
+                        <span class="n">scaling</span><span class="p">,</span> 
+                        <span class="bp">self</span><span class="o">.</span><span class="n">rwr_matrix</span><span class="p">,</span> 
+                        <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">idx_ensembl</span><span class="p">,</span> <span class="n">k_max</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span><span class="p">)</span><span class="si">}</span><span class="s2"> Seed clusters identified&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span></div>
+
+
+
+<div class="viewcode-block" id="Endotyper.extract_disease_module">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.extract_disease_module">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_disease_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed_cluster_id</span><span class="p">:</span><span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">seed_cluster_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No seed cluster ID provided, defaulting to largest seed cluster&quot;</span><span class="p">)</span>
+            <span class="n">seeds</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">seed_cluster_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;cluster_seed_</span><span class="si">{</span><span class="n">seed_cluster_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using seed cluster ID </span><span class="si">{</span><span class="n">seed_cluster_id</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;cluster_seed_</span><span class="si">{</span><span class="n">seed_cluster_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> seeds&quot;</span><span class="p">)</span>
+            <span class="n">seeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_clusters</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;cluster_seed_</span><span class="si">{</span><span class="n">seed_cluster_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No seed cluster ID provided, using all seeds&quot;</span><span class="p">)</span>
+            <span class="n">seeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span>
+    
+        <span class="n">rwr_results</span> <span class="o">=</span> <span class="n">rwr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">rwr_matrix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">idx_ensembl</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">disease_module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected_subgraph</span> <span class="o">=</span> <span class="n">extract_connected_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span>
+                                                           <span class="n">rwr_results</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connected module extracted with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">connected_subgraph</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span><span class="si">}</span><span class="s2"> nodes and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">connected_subgraph</span><span class="o">.</span><span class="n">number_of_edges</span><span class="p">()</span><span class="si">}</span><span class="s2"> edges&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+
+<div class="viewcode-block" id="Endotyper.define_local_neighborhood">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.define_local_neighborhood">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">define_local_neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neighbor_percentage</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run RWR starting from every single gene in seed_genes</span>
+<span class="sd">        and extract the top % genes from the visiting probabilities around each seed gene.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            neighbor_percentage (int): Percentage of top genes to identify.</span>
+<span class="sd">            scaling (bool): Whether to apply scaling to the RWR.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+  
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">expanded_neighborhoods</span> <span class="o">=</span> <span class="n">calculate_top_genes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">disease_module</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">rwr_matrix</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">scaling_matrix</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">idx_ensembl</span><span class="p">,</span>
+                                                            <span class="n">neighbor_percentage</span><span class="p">,</span>
+                                                            <span class="n">scaling</span><span class="o">=</span><span class="n">scaling</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+
+<div class="viewcode-block" id="Endotyper.annotate_local_neighborhood">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.annotate_local_neighborhood">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_local_neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enrichr_lib</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">organism</span><span class="o">=</span><span class="s1">&#39;Human&#39;</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the Gene Ontology (GO) terms for a given gene and its RWR defined neighbors.</span>
+<span class="sd">        This function uses the Enrichr library to perform Gene Set Enrichment Analysis (GSEA)</span>
+<span class="sd">        and returns significant terms for the expanded neighborhood of genes (significance threshold = p-value for enrichment).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            enrichr_lib (str): The name of the Enrichr library to use for GSEA.</span>
+<span class="sd">            organism (str): The organism for which the GSEA is performed. Default is &#39;Human&#39;.</span>
+<span class="sd">            sig_threshold (float): The significance threshold for the GSEA results. Default is 0.01.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">term_library</span> <span class="o">=</span> <span class="n">download_enrichr_library</span><span class="p">(</span><span class="n">enrichr_lib</span><span class="p">,</span> <span class="n">organism</span><span class="o">=</span><span class="n">organism</span><span class="p">)</span>
+        <span class="n">top_genes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expanded_neighborhoods</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighborhood_annotation</span> <span class="o">=</span> <span class="n">get_module_neighborhood_terms_dict</span><span class="p">(</span><span class="n">top_genes</span><span class="p">,</span>
+                                                                          <span class="n">term_library</span><span class="p">,</span>
+                                                                          <span class="n">sig_threshold</span> <span class="o">=</span> <span class="n">sig_threshold</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="Endotyper.define_endotypes">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.define_endotypes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">define_endotypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Define endotypes based on the annotated local neighborhoods.</span>
+<span class="sd">        This function computes the feature matrix from the neighborhood annotations (binary matrix) that describes which</span>
+<span class="sd">        enrichment terms are present for each gene based on the enrichment of the gene +local neighborhood.</span>
+<span class="sd">        The feature matrix is a binary matrix where rows are genes and columns are enrichment terms.</span>
+<span class="sd">        Each entry is 1 if the term is present for the gene, and 0 otherwise.</span>
+
+<span class="sd">        It then performs recursive clustering to identify endotypes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            self: The Endotyper object with the endotypes defined.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># make feature matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">compute_feature_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">neighborhood_annotation</span><span class="p">)</span>
+        <span class="c1"># recursive clustering</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span> <span class="o">=</span> <span class="n">recursive_endotyping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_matrix</span><span class="p">)</span>
+
+        <span class="c1">#print(f&quot;Found {len(self.endotypes)} endotypes&quot;)</span>
+    
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+
+    <span class="c1">#_TYPES = Literal[&#39;degree&#39;, &#39;betweenness&#39;]</span>
+
+<div class="viewcode-block" id="Endotyper.plot_endotype">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.plot_endotype">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_endotype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iteration</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cluster_id</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">node_size</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;degree&#39;</span><span class="p">,</span> <span class="s1">&#39;betweenness&#39;</span><span class="p">],</span>
+                        <span class="n">path_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plots the endotype network for a given iteration and cluster.</span>
+<span class="sd">        This function generates a network plot visualizing the identified endotype,</span>
+<span class="sd">        highlighting seed genes, endotype genes, and connecting genes within the larger network.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            iteration (int): The iteration number of the endotyping clustering process.</span>
+<span class="sd">            cluster_id (int, optional): The ID of the cluster to plot. If None, defaults to the first cluster. Defaults to None.</span>
+<span class="sd">            node_size (list, optional): A list of network measures to use for node sizing.</span>
+<span class="sd">                Defaults to [&#39;degree&#39;, &#39;betweenness&#39;].</span>
+<span class="sd">            path_length (int, optional): The path length to consider when connecting endotype genes. Defaults to 2.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="k">if</span> <span class="n">cluster_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No cluster ID provided, defaulting to first cluster&quot;</span><span class="p">)</span>
+            <span class="n">cluster_id</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;It_</span><span class="si">{</span><span class="n">iteration</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">iteration</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">):</span>
+            <span class="n">plot_endotype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;It_</span><span class="si">{</span><span class="n">iteration</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="s1">&#39;Final_Cluster&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span><span class="p">,</span><span class="n">node_size</span><span class="o">=</span><span class="n">node_size</span><span class="p">,</span><span class="n">path_length</span><span class="o">=</span><span class="n">path_length</span><span class="p">)</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plot_endotype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;It_</span><span class="si">{</span><span class="n">iteration</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="n">cluster_id</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span><span class="p">,</span><span class="n">node_size</span><span class="o">=</span><span class="n">node_size</span><span class="p">,</span><span class="n">path_length</span><span class="o">=</span><span class="n">path_length</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Endotyper.plot_multiple_endotypes">
+<a class="viewcode-back" href="../../endotyper.html#EndotypY.endotyper.Endotyper.plot_multiple_endotypes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_multiple_endotypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_size</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;degree&#39;</span><span class="p">,</span> <span class="s1">&#39;betweenness&#39;</span><span class="p">],</span> <span class="n">layout</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;spring&#39;</span><span class="p">,</span> <span class="n">path_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plots multiple endotypes on the network.</span>
+<span class="sd">            This function iterates through the endotypes dictionary, combining endotypes from different iterations into a single dictionary.</span>
+<span class="sd">            It then calls the `plot_multiple_endotypes` function to visualize these combined endotypes on the network.</span>
+<span class="sd">            Args:</span>
+<span class="sd">                node_size (list, optional): network measures to use for node sizing.</span>
+<span class="sd">                Defaults to [&#39;degree&#39;, &#39;betweenness&#39;].</span>
+<span class="sd">                layout (str, optional): The layout algorithm to use for the network plot. Defaults to &#39;spring&#39;.</span>
+<span class="sd">                path_length (int, optional): The path length to use for shortest path calculations. Defaults to 2.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        
+        <span class="c1">#combine endotypes from different iterations into a single dictionary</span>
+        <span class="n">endotype_clustering_joined</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">iteration_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">endotype</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">[</span><span class="n">iteration_key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+             <span class="n">endotype_clustering_joined</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">iteration_key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">endotype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">endotypes</span><span class="p">[</span><span class="n">iteration_key</span><span class="p">][</span><span class="n">endotype</span><span class="p">]</span>
+
+        <span class="n">plot_multiple_endotypes</span><span class="p">(</span><span class="n">endotype_clustering_joined</span><span class="p">,</span> 
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span><span class="p">,</span> 
+                                      <span class="n">size_height</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">size_width</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> 
+                                      <span class="n">node_size</span><span class="o">=</span> <span class="n">node_size</span><span class="p">,</span> 
+                                      <span class="n">path_length</span><span class="o">=</span><span class="n">path_length</span><span class="p">,</span>
+                                      <span class="n">limit_lcc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">,</span>
+                                      <span class="c1">#layout_seed=2025</span>
+                                      <span class="p">)</span></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Mathilde Meyenberg, Chloe Bucheron, Iker Nunez Carpintero, Liya Zaygerman.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
