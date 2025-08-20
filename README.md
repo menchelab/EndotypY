@@ -7,6 +7,9 @@ A short description of your package.
 ```sh
 #clone git repo and navigate to directory containing the setup.py file
 pip install .
+
+#or run this command in your jupyter notebook
+!pip install git+https://github.com/menchelab/EndotypY.git
 ```
 
 ## Documentation
