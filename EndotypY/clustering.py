@@ -25,6 +25,14 @@ warnings.filterwarnings("ignore", category=ClusterWarning, message=".*uncondense
 warnings.filterwarnings("ignore", message=".*All terms in the feature matrix.*were removed.*")
 
 
+### META COMMMENTS
+# check the distribution of GO terms that we have for any two terms that they are more distant from other clusters than within clusters
+# we can try to estimate stability by bootstrapping the feature matrix, build trees, and compare the trees (the how is the complicated)
+# graph kernels OR robinsons foulds distance OR simply shortest path distance
+# test case with highest entropy and lowest entropy
+# low entropy = low number of clusters
+# high entropy = high number of clusters
+
 # Create a feature binary feature matrix, where each row is a gene and each column is a GO term
 def compute_feature_matrix(go_terms_dict):
     """
@@ -60,6 +68,11 @@ def compute_feature_matrix(go_terms_dict):
 
 # =============================================================================
 
+# each column in the feature matrix is a binomial distribution
+# n is the number of genes
+# k = number of genes associates with one GO term (column sum)
+
+
 
 def log_likelihood(p, data):
     """
@@ -84,8 +97,12 @@ def log_likelihood(p, data):
 
 # =============================================================================
 
-
+# given my data, how far are two columns from the mean probability of success
 def filter_go_term_deviations(feature_matrix):
+
+    #TODO: are we throwing away characteristic data here?
+    #TODO: look at the distribution of deviations here and decide whether to keep or discard them
+
     """
     Filter out GO terms that deviate significantly from the mean probability of success,
     applying the False Discovery Rate (FDR) correction for multiple hypothesis testing.
@@ -137,6 +154,8 @@ def filter_go_term_deviations(feature_matrix):
 
 
 def get_descendants(Z, node_id, num_leaves,feature_matrix):
+    #TODO: change to for loop to be inclusive to cases with more than 2 branches
+    #TODO: rename Z to linkage_matrix
     """
     Extracts all descendant leaves of a given node in the dendrogram.
     
