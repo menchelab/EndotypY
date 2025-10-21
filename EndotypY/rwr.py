@@ -59,8 +59,14 @@ def extract_connected_module(G, seed_genes, rwr_results, k:int, check_connectivi
     disease_module.extend(rwr_rank_without_seed_genes[:k]) #extending disease module with the top ranked genes up to k
 
     if check_connectivity == False:
-        return disease_module, nx.subgraph(G, disease_module)
-    
+        # Return the largest connected component of the disease module
+        subgraph = nx.subgraph(G, disease_module)
+        largest_cc = max(nx.connected_components(subgraph), key=len)
+        disease_module = list(largest_cc)
+        subgraph = nx.subgraph(G, disease_module)
+
+        return disease_module, subgraph
+
     else:
         #if the disease module is not connected, add the next ranked genes until it is connected
         i = 0
