@@ -1,18 +1,17 @@
 import os
 import pickle
+import networkx as nx
 from collections import defaultdict as dd
 import matplotlib.pyplot as plt #type: ignore
 from tqdm import tqdm #type: ignore
+from multiprocessing import Pool, cpu_count
 
-from EndotypY.rwr import rwr_from_individual_genes, extract_connected_module
+from EndotypY.rwr import extract_connected_module
 
 
 def run_seed_clustering(G, 
-                        seed_genes, 
-                        scaling, 
-                        rwr_matrix, 
-                        scaling_matrix,
-                        d_idx_ensembl, k_max=200):
+                        seed_genes,
+                        d_rwr_individuals, k_max=200):
     """
     Run the seed clustering process.
     This function computes the RWR for each seed gene, clusters them based on
@@ -28,31 +27,50 @@ def run_seed_clustering(G,
         - k_max: Maximum neighborhood size to test.
     """
     
-    # RUN RWR FOR EACH SEED GENE
-    d_rwr_individuals = rwr_from_individual_genes(
-        seed_genes = seed_genes,
-        G = G,
-        scaling=scaling, 
-        rwr_matrix=rwr_matrix,
-        scaling_matrix=scaling_matrix, 
-        d_idx_ensembl=d_idx_ensembl
-        )
          
     # TEST THE CLUSTERING OVER DIFFERENT NEIGHBORHOODS
-    n_cluster_size_1 = []
+    all_cluster_results = []
     n_clusters = []
-    tested_neighborhoods = list(range(10, min(k_max + 1, 201), 10))
-    
-    for k in tested_neighborhoods:
 
-        _, clustered_seed_genes = _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold=k)
-        n_clusters.append(len(clustered_seed_genes))
-        sizes = [len(c) for c in clustered_seed_genes]
-        n_cluster_size_1.append(sizes.count(1))
-     
-    # FIND THE FIRST PLATEAU
-    plateau_start = _find_first_plateau(G, n_clusters, tested_neighborhoods, seed_genes, d_rwr_individuals)
+    #tested_neighborhoods = list(range(10, min(k_max + 1, 201), 10))
+    #changed this to avoid empty lists
+    step = 10
+    if k_max < step:
+        tested_neighborhoods = [k_max]
+    else:
+        tested_neighborhoods = list(range(step, k_max + 1, step))
+        # Ensure the final k_max is included if it's not a multiple of the step
+        if k_max not in tested_neighborhoods:
+            tested_neighborhoods.append(k_max)
+            
+    print(f"Testing neighborhood sizes in parallel on {cpu_count()} cores...")
     
+    # Prepare arguments for the parallel worker function
+    args = [(G, seed_genes, d_rwr_individuals, k) for k in tested_neighborhoods]
+
+    # Run the clustering in parallel
+    with Pool(processes=cpu_count()) as pool:
+        results = list(tqdm(pool.starmap(_cluster_seed_genes, args), total=len(tested_neighborhoods)))
+
+    # Unpack the results from the parallel execution
+    all_cluster_results = [res[1] for res in results]
+    n_clusters = [len(clusters) for clusters in all_cluster_results]
+    n_cluster_size_1 = [sum(1 for cluster in clusters if len(cluster) == 1) for clusters in all_cluster_results]
+
+    # FIND THE FIRST PLATEAU
+    plateau_index = _find_first_plateau(n_clusters)
+    
+    # Determine the final clusters to use
+    if plateau_index is not None:
+        final_clusters = all_cluster_results[plateau_index]
+        optimal_k = tested_neighborhoods[plateau_index]
+        print(f"Optimal neighborhood size found at k={optimal_k} with {n_clusters[plateau_index]} cluster(s).")
+    else:
+        final_clusters = all_cluster_results[-1] # Fallback to the last result
+        optimal_k = tested_neighborhoods[-1]
+        print(f"No stable plateau found. Using largest tested neighborhood size k={optimal_k}.")
+
+
     # PLOT THE RESULTS
     plt.figure(figsize=(8, 6))
     plt.scatter(tested_neighborhoods, n_cluster_size_1, 
@@ -64,9 +82,10 @@ def run_seed_clustering(G,
                 color="crimson", s=60, alpha=0.7, edgecolors="black", marker="s")
 
     # Add horizontal line marking the plateau
-    if plateau_start[1] is not None:
-        plt.axhline(y=plateau_start[1], color="green", linestyle="--", linewidth=1.5, 
-                    label=f"Plateau at {plateau_start[1]} clusters")
+    if plateau_index is not None:
+        plateau_value = n_clusters[plateau_index]
+        plt.axhline(y=plateau_value, color="green", linestyle="--", linewidth=1.5, 
+                    label=f"Plateau at {plateau_value} clusters")
 
     plt.xlabel("RWR-Neighborhood Size", fontsize=12, fontweight="bold")
     plt.ylabel("Number of Clusters", fontsize=12, fontweight="bold")
@@ -74,45 +93,34 @@ def run_seed_clustering(G,
     plt.legend(fontsize=11, loc="upper right", frameon=True)
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.show()
-    
+
     # SAVE THE CLUSTERED SEEDS
     cluster_dict = {}
-    for i, cluster in enumerate(plateau_start[2], 1):
+    for i, cluster in enumerate(final_clusters, 1):
         cluster_dict[f'cluster_seed_{i}'] = cluster
 
     return cluster_dict
 
 
 #-------------------------------------------------------------
-def _find_first_plateau(G,
-                       cluster_counts, 
-                       neighborhood_sizes, 
-                       seed_genes, 
-                       d_rwr_individuals, 
-                       min_plateau_length=3):
+def _find_first_plateau(cluster_counts, min_plateau_length=3):
     """
-    Finds the first plateau in the number of clusters that extends over at least 
-    3 consecutive values.
+    Finds the index of the start of the first plateau in a list of numbers.
+    A plateau is defined as a sequence of at least `min_plateau_length`
+    identical numbers.
 
     Parameters:
     - cluster_counts (list): List of cluster counts for each neighborhood size.
-    - neighborhood_sizes (list): List of neighborhood sizes corresponding to the 
-                                 cluster counts.
-    - seed_genes (list): List of seed genes.
-    - d_rwr_individuals (dict): Dictionary containing the RWR results for each gene.
     - min_plateau_length (int): Minimum number of consecutive same values to be 
                                 considered a plateau.
 
     Returns:
-    - tuple: (start_size, plateau_value, clustered_seed_genes) where start_size 
-             is the neighborhood size where the plateau starts, plateau_value is 
-             the number of clusters in the plateau, and clustered_seed_genes are 
-             the clusters of seed genes. Returns (None, None, seed_genes) if no 
-             plateau found.
+    - int or None: The index where the first plateau begins, or None if no
+                   plateau is found.
     """
     
     if len(cluster_counts) < min_plateau_length:
-        return None, None
+        return None
         
     for i in range(len(cluster_counts) - min_plateau_length + 1):
         # Get the value at current position
@@ -123,64 +131,55 @@ def _find_first_plateau(G,
                         for j in range(min_plateau_length))
         
         if is_plateau:
-            _, clustered_seed_genes = _cluster_seed_genes(
-                G,
-                seed_genes,
-                d_rwr_individuals,
-                rwr_threshold=neighborhood_sizes[i]
-                )
+            return i # Return the index where the plateau starts
             
-            return neighborhood_sizes[i], current_value, clustered_seed_genes
-            
-    return None, None, seed_genes
+    return None
+
 
 def _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold):
-    
-    """
-    Clusters seed genes based on their neighborhoods obtained via RWR, allowing
-    overlapping clusters.
-    Each seed gene is assigned to a cluster based on its neighborhood, and
-    overlapping clusters are merged iteratively.
-    
-    Parameters:
-        - seed_genes (list): List of seed genes.
-        - d_rwr_individuals (dict): Dictionary containing the RWR expansion
-                            for each gene.
-        - rwr_threshold (int): Threshold for neighborhood size to consider
-                            for clustering.
-    
-    Returns:
-        - clusters (dict): Dictionary where keys are seed genes and values
-                           are lists of overlapping seed genes.
-        - merged_clusters (list): List of merged clusters after iteratively 
-                           merging overlapping clusters.
-    """
-    
-    clusters = dd(list)
 
-    # Create clusters of seed genes based on the RWR neighborhoods
+    #get neighborhoods for each seed gene at the given rwr_threshold (k)
+    neighborhoods = {}
     for seed in seed_genes:
-        # d_rwr_individuals[seed] is now directly the gene probabilities dictionary
-        gene_probabilities = d_rwr_individuals[seed]
-        neighborhood, _ = extract_connected_module(G, [seed], gene_probabilities, k=rwr_threshold) 
-        cluster = [node for node in neighborhood if node in seed_genes]
-        clusters[seed] = cluster
+        if seed in d_rwr_individuals:
+            # Select the RWR results for the specific, current seed.
+            rwr_results_for_seed = d_rwr_individuals[seed]
+            seed_neighborhoods, _ = extract_connected_module(G, seed, rwr_results_for_seed, k=rwr_threshold,
+                                                             check_connectivity=False)
+            neighborhoods[seed] = set(seed_neighborhoods)
 
-    merged_clusters = list(clusters.values())
+    # 1. Create a new graph where nodes are the seed genes.
+    # This graph will represent the relationships between seeds.
+    seed_graph = nx.Graph()
+    seed_graph.add_nodes_from(neighborhoods.keys())
 
-    # Iteratively merge overlapping clusters until no further merges are possible
-    merged = True
-    while merged:
-        merged = False
-        for i in range(len(merged_clusters)):
-            for j in range(i + 1, len(merged_clusters)):
-                if set(merged_clusters[i]) & set(merged_clusters[j]):
-                    # Merge and break to restart the process
-                    merged_clusters[i] = list(set(merged_clusters[i] + merged_clusters[j]))
-                    del merged_clusters[j]
-                    merged = True
-                    break
-            if merged:
-                break
+    #Get a list of the seeds to iterate over unique pairs.
+    seeds_to_compare = list(neighborhoods.keys())
 
-    return clusters, merged_clusters
+    # 2. Loop through all unique pairs of seeds.
+    #    The outer loop goes from the first to the second-to-last seed.
+    for i in range(len(seeds_to_compare)):
+        # The inner loop goes from the next seed to the last one.
+        # This avoids comparing a seed to itself and avoids duplicate pairs (A,B vs B,A).
+        for j in range(i + 1, len(seeds_to_compare)):
+            seed1 = seeds_to_compare[i]
+            seed2 = seeds_to_compare[j]
+
+            # 4. Check for overlap using the efficient .isdisjoint() method.
+            #    set1.isdisjoint(set2) is False if they have at least one common element.
+            if not neighborhoods[seed1].isdisjoint(neighborhoods[seed2]):
+                # if there is overlap, add an edge between the two seeds in the seed graph.
+                seed_graph.add_edge(seed1, seed2)
+            
+    # 5. Find connected components in the seed graph.
+    #    Each connected component represents a cluster of overlapping seeds.
+    # Convert connected components to a dictionary with cluster_seed_X format keys
+    final_clusters = [list(component) for component in nx.connected_components(seed_graph)]
+    n_clusters = len(final_clusters)
+
+    return n_clusters, final_clusters
+
+
+
+
+    

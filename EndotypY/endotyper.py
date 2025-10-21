@@ -1,6 +1,6 @@
 from .import_export import read_network_from_file, load_seed_set_from_file
 from .prepare_rwr import prep_rwr
-from .rwr import rwr, extract_connected_module
+from .rwr import rwr, extract_connected_module, rwr_from_individual_genes
 from .seed_clusters import run_seed_clustering
 from .expansion import calculate_top_genes, get_module_neighborhood_terms_dict
 from .utils import download_enrichr_library
@@ -31,6 +31,7 @@ class Endotyper:
         self.idx_ensembl = None
         self.disease_module = None
         self.connected_subgraph = None
+        self.seed_clustering_neighborhoods = None
         self.seed_clusters = None
         self.expanded_neighborhoods = None
         self.neighborhood_annotation = None
@@ -92,6 +93,14 @@ class Endotyper:
                       and index to ensembl mapping stored as attributes.
             """
         print("Preparing RWR...")
+
+        # Add check to eliminate seeds that are not present in network
+        not_present = [seed for seed in self.seeds if seed not in self.network.nodes()]
+        if len(not_present) > 0:
+            self.seeds = [seed for seed in self.seeds if seed in self.network.nodes()]
+            print(f"Warning: The following seed genes are not present in the network and will be ignored: ")
+            print(not_present)
+
         (self.rwr_matrix,
          self.scaling_matrix,
          self.idx_ensembl) = prep_rwr(self.network, r)
@@ -111,13 +120,21 @@ class Endotyper:
             - scaling: Whether to apply scaling to the RWR.
 
         """
+        # RUN RWR FOR EACH SEED GENE and save to not recompute if not needed
+        
+        if self.seed_clustering_neighborhoods is None:
+            self.seed_clustering_neighborhoods = rwr_from_individual_genes(
+                seed_genes = self.seeds,
+                G = self.network,
+                scaling=scaling, 
+                rwr_matrix=self.rwr_matrix,
+                scaling_matrix=self.scaling_matrix, 
+                d_idx_ensembl=self.idx_ensembl)
 
         self.seed_clusters = run_seed_clustering(self.network, 
-                        self.seeds, 
-                        scaling, 
-                        self.rwr_matrix, 
-                        self.scaling_matrix,
-                        self.idx_ensembl, k_max=k)
+                        self.seeds,
+                        self.seed_clustering_neighborhoods,
+                        k_max=k)
 
         print(f"{len(self.seed_clusters)} Seed clusters identified")
         return self.seed_clusters
@@ -142,7 +159,7 @@ class Endotyper:
                                        self.idx_ensembl)
         
         self.disease_module, self.connected_subgraph = extract_connected_module(self.network, seeds,
-                                                           rwr_results, k=k)
+                                                           rwr_results, k=k, check_connectivity=True)
 
         print(f"Connected module extracted with {self.connected_subgraph.number_of_nodes()} nodes and {self.connected_subgraph.number_of_edges()} edges")
         return self
