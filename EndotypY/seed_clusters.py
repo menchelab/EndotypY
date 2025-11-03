@@ -26,7 +26,13 @@ def run_seed_clustering(G,
         - d_idx_ensembl: Dictionary mapping indices to Ensembl IDs.
         - k_max: Maximum neighborhood size to test.
     """
-    
+    # CHECK IF THE SEED GENES ARE ALREADY CONNECTED, SKIP THE CLUSTERING IF SO
+    subgraph_seeds = nx.subgraph(G, seed_genes)
+    if nx.is_connected(subgraph_seeds):
+       print("The seed genes are already connected.")
+       cluster_dict = {}
+       cluster_dict['cluster_seed_1'] = seed_genes
+       return cluster_dict
          
     # TEST THE CLUSTERING OVER DIFFERENT NEIGHBORHOODS
     all_cluster_results = []
@@ -144,8 +150,7 @@ def _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold):
         if seed in d_rwr_individuals:
             # Select the RWR results for the specific, current seed.
             rwr_results_for_seed = d_rwr_individuals[seed]
-            seed_neighborhoods, _ = extract_connected_module(G, seed, rwr_results_for_seed, k=rwr_threshold,
-                                                             check_connectivity=False)
+            seed_neighborhoods, _ = extract_connected_module(G, [seed], rwr_results_for_seed, k=rwr_threshold)
             neighborhoods[seed] = set(seed_neighborhoods)
 
     # 1. Create a new graph where nodes are the seed genes.
