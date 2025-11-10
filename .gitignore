@@ -10,6 +10,8 @@ __pycache__/
 env/
 venv/
 endotyping_test/
+#kl-tree-cluster-main/
+dev_package_debug.ipynb
 *.egg-info/
 dist/
 *.pkl

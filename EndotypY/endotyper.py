@@ -5,6 +5,7 @@ from .seed_clusters import run_seed_clustering
 from .expansion import calculate_top_genes, get_module_neighborhood_terms_dict
 from .utils import download_enrichr_library
 from .clustering import compute_feature_matrix, recursive_endotyping
+from .kl_clustering import kl_clustering_endotypes
 from .visualization import plot_endotype, plot_multiple_endotypes
 
 from typing import Literal
@@ -159,7 +160,8 @@ class Endotyper:
                                        self.idx_ensembl)
         
         self.disease_module, self.connected_subgraph = extract_connected_module(self.network, seeds,
-                                                           rwr_results, k=k, check_connectivity=True)
+        #                                                   rwr_results, k=k, check_connectivity=True)
+                                                            rwr_results, k=k)
 
         print(f"Connected module extracted with {self.connected_subgraph.number_of_nodes()} nodes and {self.connected_subgraph.number_of_edges()} edges")
         return self
@@ -231,6 +233,31 @@ class Endotyper:
         #print(f"Found {len(self.endotypes)} endotypes")
     
         return self
+    
+    def define_kl_endotypes(self,distance_metric: str = 'hamming', linkage_method: str = 'complete',alpha: float = 0.05):
+
+        """
+        Define endotypes based on KL divergence.
+        This function computes the feature matrix from the neighborhood annotations (binary matrix) that describes which
+        enrichment terms are present for each gene based on the enrichment of the gene +local neighborhood.
+        The feature matrix is a binary matrix where rows are genes and columns are enrichment terms.
+        Each entry is 1 if the term is present for the gene, and 0 otherwise.
+
+        It then performs kl divergence clustering to identify endotypes.
+        Returns:
+            self: The Endotyper object with the endotypes defined.
+        """
+        # make feature matrix
+        self.feature_matrix = compute_feature_matrix(self.neighborhood_annotation)
+        # recursive clustering
+        self.endotypes = kl_clustering_endotypes(data = self.feature_matrix,
+                                                  distance_metric=distance_metric,
+                                                  linkage_method=linkage_method,
+                                                  alpha=alpha)
+
+        return self
+
+        #print(f"Found {len(self.endotypes)} endotypes")
     
 
     #_TYPES = Literal['degree', 'betweenness']
