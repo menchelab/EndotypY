@@ -46,7 +46,10 @@ def rwr_from_individual_genes(G, seed_genes, scaling:bool,
                                  d_idx_ensembl)
     return rwr_per_gene
 
-def extract_connected_module(G, seed_genes, rwr_results, k:int):
+
+
+
+def extract_connected_module(G, seed_genes:list, rwr_results, k:int):
     # Sort the genes by their visiting probabilities in descending order
     d_gene_pvis_sorted = dict(sorted(rwr_results.items(), key=lambda item: item[1], reverse=True))
 
@@ -70,4 +73,5 @@ def extract_connected_module(G, seed_genes, rwr_results, k:int):
             subgraph = nx.subgraph(G, disease_module)
         i += 1
 
-    return disease_module, nx.subgraph(G, disease_module)
+
+    return disease_module, subgraph

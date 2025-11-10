@@ -12,3 +12,4 @@ venv/
 endotyping_test/
 *.egg-info/
 dist/
+*.pkl
