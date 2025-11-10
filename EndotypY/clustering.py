@@ -63,6 +63,13 @@ def compute_feature_matrix(go_terms_dict):
                 feature_matrix[i, j] = 1
 
     feature_matrix = pd.DataFrame(feature_matrix, columns=all_go_terms, index=go_terms_dict.keys()).astype(int)
+    # Remove rows where all elements are 0
+    zero_sum_rows = feature_matrix[feature_matrix.sum(axis=1) == 0]
+    if not zero_sum_rows.empty:
+        removed_samples = zero_sum_rows.index.tolist()
+        print(f"Warning: Removed {len(removed_samples)} gene(s) with no associated terms: {removed_samples}")
+        feature_matrix = feature_matrix[feature_matrix.sum(axis=1) > 0]
+
     return feature_matrix
 
 
