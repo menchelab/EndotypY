@@ -190,7 +190,7 @@ class Endotyper:
         return self
     
 
-    def annotate_local_neighborhood(self, enrichr_lib:str, organism='Human', sig_threshold=0.01):
+    def annotate_local_neighborhood(self, enrichr_lib:str, organism='Human', sig_threshold=0.01, force_download=False):
 
         """ Get the Gene Ontology (GO) terms for a given gene and its RWR defined neighbors.
         This function uses the Enrichr library to perform Gene Set Enrichment Analysis (GSEA)
@@ -202,10 +202,14 @@ class Endotyper:
             sig_threshold (float): The significance threshold for the GSEA results. Default is 0.01.
 
         """
-
-        term_library = download_enrichr_library(enrichr_lib, organism=organism)
+        if force_download:
+            print("Forcing re-download of Enrichr library...")
+            term_library = download_enrichr_library(enrichr_lib, organism=organism, force_download=force_download)
+        else:
+            term_library = download_enrichr_library(enrichr_lib, organism=organism)
+        
         top_genes = self.expanded_neighborhoods
-
+        print(f"Annotating local neighborhoods using {enrichr_lib} library...")
         self.neighborhood_annotation = get_module_neighborhood_terms_dict(top_genes,
                                                                           term_library,
                                                                           sig_threshold = sig_threshold)
