@@ -1,0 +1,83 @@
+# Output directory - all generated files
+output/
+*.parquet
+*.pkl
+*.npy
+*.npz
+
+# Intermediate and output files (if in root)
+terms_filtered.tsv
+term_embeddings*.csv
+term_embeddings*.npy
+term_to_embedding.pkl
+terms_list.pkl
+node_embeddings_*.pkl
+node_aggregation_stats.csv
+node_coordinates_2d.*
+nodes_out.*
+nodes_graph_embeddings.*
+export_embeddings.*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+*~
+.#*
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.venv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Keep input files
+!input/*.tsv
+
+# Keep source code and documentation
+!*.py
+!Makefile
+!README.md
+!.gitignore
