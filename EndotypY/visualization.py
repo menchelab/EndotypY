@@ -426,8 +426,8 @@ def plot_endotype_grid(endotypes, G, seed_genes, size_height=500, size_width=500
             
             enrichment_results[endotype_name] = enr.results
             
-            # Get top terms
-            if not enr.results.empty:
+            # Get top terms - check if results is a DataFrame and not empty
+            if hasattr(enr.results, 'empty') and not enr.results.empty:
                 top_results = enr.results.nsmallest(top_terms, 'Adjusted P-value')
                 
                 # Extract data
@@ -501,8 +501,8 @@ def plot_endotype_grid(endotypes, G, seed_genes, size_height=500, size_width=500
         fig.update_layout(height=size_height * rows, width=size_width * ncols * 2,
                           title_text="Network of Multiple Endotypes with GSEA", showlegend=False)
         fig.show()
-        return fig, enrichment_results
     else:
         fig.update_layout(height=size_height * rows, width=size_width * ncols,
                           title_text="Network of Multiple Endotypes", showlegend=False)
-        return fig
+        fig.show()
+        return None

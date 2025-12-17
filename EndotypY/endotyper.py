@@ -6,7 +6,7 @@ from .expansion import calculate_top_genes, get_module_neighborhood_terms_dict
 from .utils import download_enrichr_library
 from .clustering import compute_feature_matrix, recursive_endotyping
 from .kl_clustering import kl_clustering_endotypes
-from .visualization import plot_endotype, plot_multiple_endotypes
+from .visualization import plot_endotype, plot_multiple_endotypes, plot_endotype_grid
 
 from typing import Literal
 class Endotyper:
@@ -321,7 +321,62 @@ class Endotyper:
                                       layout=layout,
                                       #layout_seed=2025
                                       )
+    
 
+    def plot_endotype_grid(self, size_height=500, size_width=500, ncols=2, node_size='degree', 
+                           path_length=2, layout_seed=2025, 
+                           enrichr_lib=None, top_terms=5, 
+                           gsea_plot_type='dotplot'):
+        """Plots endotypes in a grid layout using Plotly with optional GSEA visualization.
+        
+        This function creates an interactive grid visualization of all identified endotypes,
+        combining endotypes from different iterations into a single grid view.
+        
+        Args:
+            size_height (int, optional): Height of each subplot in pixels. Defaults to 500.
+            size_width (int, optional): Width of each subplot in pixels. Defaults to 500.
+            ncols (int, optional): Number of columns in the grid layout. Defaults to 3.
+            node_size (str or int, optional): Determines the centrality measure for node sizing.
+                Options are 'betweenness' or 'degree'. If integer, used as fixed node size. Defaults to 'degree'.
+            path_length (int, optional): Length of shortest paths to consider between endotype genes. Defaults to 2.
+            layout_seed (int, optional): Seed for the spring layout. Defaults to 2025.
+            enrichr_lib (str, optional): Name of Enrichr library for GSEA. If None, no GSEA is performed. Defaults to None.
+            top_terms (int, optional): Number of top enriched terms to display. Defaults to 5.
+            gsea_plot_type (str, optional): Type of plot for GSEA results ('dotplot' or 'pie'). Defaults to 'dotplot'.
+            
+        Returns:
+            Plotly figure and optionally GSEA enrichment results if enrichr_lib is provided.
+        """
+        # Combine endotypes from different iterations into a single dictionary
+        endotype_clustering_joined = {}
+        
+        # Check if endotypes is from KL clustering (tuple) or recursive clustering (dict)
+        if isinstance(self.endotypes, tuple):
+            # KL clustering returns (predicted_labels, cluster_assignments, cluster_dict)
+            # cluster_dict is at index 2
+            endotype_clustering_joined = self.endotypes[2]
+        else:
+            # Old recursive clustering returns nested dict with iterations
+            for iteration_key in self.endotypes.keys():
+                for endotype in self.endotypes[iteration_key].keys():
+                    endotype_clustering_joined[f"{iteration_key}_{endotype}"] = self.endotypes[iteration_key][endotype]
+        
+        return plot_endotype_grid(endotype_clustering_joined, 
+                                  self.network, 
+                                  self.seeds, 
+                                  size_height=size_height, 
+                                  size_width=size_width, 
+                                  ncols=ncols, 
+                                  node_size=node_size, 
+                                  path_length=path_length, 
+                                  layout_seed=layout_seed, 
+                                  layout='spring', 
+                                  limit_lcc=True, 
+                                  enrichr_lib=enrichr_lib, 
+                                  organism='Human', 
+                                  top_terms=top_terms, 
+                                  force_download=False, 
+                                  gsea_plot_type=gsea_plot_type)
 
 
 
