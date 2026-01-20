@@ -159,7 +159,7 @@ class Endotyper:
                                        self.idx_ensembl)
         
         self.disease_module, self.connected_subgraph = extract_connected_module(self.network, seeds,
-                                                           rwr_results, k=k, check_connectivity=True)
+                                                           rwr_results, k=k)
 
         print(f"Connected module extracted with {self.connected_subgraph.number_of_nodes()} nodes and {self.connected_subgraph.number_of_edges()} edges")
         return self
