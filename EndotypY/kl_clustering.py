@@ -1,20 +1,12 @@
 import numpy as np
 import pandas as pd
-from kl_clustering_analysis import tree, hierarchy_analysis
+from kl_clustering_analysis.tree.poset_tree import PosetTree
+from kl_clustering_analysis import config
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 from sklearn.datasets import make_blobs
 from sklearn.metrics import adjusted_rand_score
 
-# Import the necessary functions from your library
-from tree.poset_tree import PosetTree
-from hierarchy_analysis.divergence_metrics import calculate_hierarchy_kl_divergence
-from hierarchy_analysis.statistical_tests import (
-    annotate_nodes_with_statistical_significance_tests,
-    annotate_child_parent_divergence,
-    annotate_sibling_independence_cmi,
-)
-from hierarchy_analysis.cluster_decomposition import ClusterDecomposer
 
 def kl_clustering_endotypes(data: pd.DataFrame, linkage_method: str = 'complete', distance_metric: str = 'hamming', alpha: float = 0.05) -> dict:
     """
@@ -30,48 +22,19 @@ def kl_clustering_endotypes(data: pd.DataFrame, linkage_method: str = 'complete'
     """
     print("--- Starting Analysis Pipeline ---")
 
-    # ensure data is in correct format
+    # 1. ensure data is in correct format
     data = data.astype(int)
-
-    # 1. --- Data Preparation ---
-    print(f"\nStep 1: Prepared dataset with {data.shape[0]} samples and {data.shape[1]} features.")
 
     # --- Execute the Core Pipeline ---
     # 2. linkage()
     Z = linkage(pdist(data.values, metric=distance_metric), method=linkage_method)
-    print("\nStep 2: Created hierarchy with SciPy linkage.")
+    print("Linkage matrix computed using method:", linkage_method, "and distance metric:", distance_metric)
 
     # 3. PosetTree.from_linkage()
     tree = PosetTree.from_linkage(Z, leaf_names=data.index.tolist())
-    print("Step 3: Converted hierarchy to PosetTree structure.")
-
-    # 4. calculate_hierarchy_kl_divergence()
-    # Pass the NetworkX graph (the PosetTree itself), not its metadata dict
-    stats_df = calculate_hierarchy_kl_divergence(tree, data)
-    print("Step 4: Calculated KL-divergence for all nodes in the tree.")
-
-    significance_level = alpha
-    # 5. annotate...() functions
-    stats_df = annotate_nodes_with_statistical_significance_tests(
-        stats_df, data.shape[1], significance_level
-    )
-    stats_df = annotate_child_parent_divergence(
-        tree, stats_df, data.shape[1], significance_level
-    )
-    # annotate_sibling_independence_cmi uses keyword-only arguments after '*'
-    stats_df = annotate_sibling_independence_cmi(
-        tree, stats_df, significance_level_alpha=significance_level
-    )
-    print("Step 5: Annotated tree with multiple statistical significance tests.")
-
-    # 6. ClusterDecomposer.decompose_tree()
-    decomposer = ClusterDecomposer(
-        tree=tree,
-        results_df=stats_df,
-        significance_column="Are_Features_Dependent",
-    )
-    decomposition_results = decomposer.decompose_tree()
-    print("Step 6: Decomposed the tree to extract significant clusters.")
+    # 4. tree.decompose()
+    decomposition_results = tree.decompose(leaf_data=data, alpha_local=0.05, sibling_alpha=0.05)
+    print("Tree decomposition completed with alpha_local=0.05 and sibling_alpha=0.05")
 
     # --- Display Results ---
     print("\n--- Analysis Complete ---")
