@@ -4,9 +4,9 @@ from .rwr import rwr, extract_connected_module, rwr_from_individual_genes
 from .seed_clusters import run_seed_clustering
 from .expansion import calculate_top_genes, get_module_neighborhood_terms_dict
 from .utils import download_enrichr_library
-from .clustering import compute_feature_matrix, recursive_endotyping
-from .kl_clustering import kl_clustering_endotypes
-from .visualization import plot_endotype, plot_multiple_endotypes, plot_endotype_grid
+from .kl_clustering import compute_feature_matrix, kl_clustering_endotypes
+from .visualization import  plot_multiple_endotypes, plot_endotype_grid
+from .metagraph_visualization import plot_endotypes_metagraph
 
 from typing import Literal
 class Endotyper:
@@ -110,16 +110,31 @@ class Endotyper:
 
 
     def explore_seed_clusters(self, scaling=True, k=200):
+        """Clusters seed genes to identify distinct functional groups.
 
-        """
-        Run the seed clustering process.
-        This function computes the RWR for each seed gene, clusters them based on
-        their neighborhoods, and plots the results.
+        This method uses the `run_seed_clustering` function to group the seed genes.
+        This involves testing various neighborhood sizes (`k`) to find an optimal
+        clustering, where clusters are determined by the overlap in their
+        RWR-defined network neighborhoods. The process is visualized in a plot
+        showing how the number of clusters changes with neighborhood size.
+        If seeds are distant in the network, they may not cluster together and thus should
+        be used in separate endotyping analyses. This method can help identify such cases.
 
         Args:
-            - k_max: Maximum neighborhood size to test.
-            - scaling: Whether to apply scaling to the RWR.
+            scaling (bool, optional):
+                Whether to apply degree-based scaling during the RWR calculations.
+                Defaults to True.
+            k (int, optional):
+                The maximum neighborhood size to test for clustering. This defines
+                the upper limit for the range of `k` values evaluated.
+                Defaults to 200.
 
+        Returns:
+            dict:
+                A dictionary where keys are cluster identifiers (e.g.,
+                'cluster_seed_1') and values are the lists of seed genes
+                belonging to each cluster. The identified clusters are also
+                stored in the `self.seed_clusters` attribute.
         """
         # RUN RWR FOR EACH SEED GENE and save to not recompute if not needed
         
@@ -142,7 +157,40 @@ class Endotyper:
 
 
     def extract_disease_module(self, seed_cluster_id:int = None, scaling=True, k=200):
-        
+        """Extracts a connected "disease module" from the network.
+
+        This method defines a relevant subgraph, or "disease module," centered
+        around a specific set of seed genes. It first determines which seeds to
+        use based on the `seed_cluster_id`. It can use a specific seed cluster,
+        default to the largest one, or use all provided seeds.
+
+        It then performs a Random Walk with Restart (RWR) from these seeds and
+        uses the resulting probabilities to identify a connected module. This is
+        done by calling the `extract_connected_module` function, which combines
+        the seeds with the top `k` most-visited nodes and ensures the final
+        subgraph is connected.
+
+        The resulting module and its corresponding subgraph are stored in the
+        `self.disease_module` and `self.connected_subgraph` attributes.
+
+        Args:
+            seed_cluster_id (int, optional):
+                The ID of a specific seed cluster (from `explore_seed_clusters`)
+                to use for module extraction. If None, it defaults to the largest
+                available seed cluster. If no clusters are defined, it uses all
+                initial seeds. Defaults to None.
+            scaling (bool, optional):
+                Whether to apply degree-based scaling during the RWR calculation.
+                Defaults to True.
+            k (int, optional):
+                The number of top-ranked genes (excluding seeds) to include in
+                the initial module definition. Defaults to 200.
+
+        Returns:
+            self:
+                The Endotyper object, with `disease_module` and
+                `connected_subgraph` attributes updated.
+        """
         if seed_cluster_id is None and self.seed_clusters is not None:
             print(f"No seed cluster ID provided, defaulting to largest seed cluster")
             seeds = max(self.seed_clusters.values(), key=len)
@@ -160,7 +208,6 @@ class Endotyper:
                                        self.idx_ensembl)
         
         self.disease_module, self.connected_subgraph = extract_connected_module(self.network, seeds,
-        #                                                   rwr_results, k=k, check_connectivity=True)
                                                             rwr_results, k=k)
 
         print(f"Connected module extracted with {self.connected_subgraph.number_of_nodes()} nodes and {self.connected_subgraph.number_of_edges()} edges")
@@ -170,8 +217,8 @@ class Endotyper:
     def define_local_neighborhood(self, neighbor_percentage=1, scaling=True):
 
         """
-        Run RWR starting from every single gene in seed_genes
-        and extract the top % genes from the visiting probabilities around each seed gene.
+        Defines the local neighborhood for each gene in the disease module using Random Walk with Restart (RWR).
+        and extract the top n% genes from the visiting probabilities around each gene.
 
         Args:
             neighbor_percentage (int): Percentage of top genes to identify.
@@ -214,29 +261,7 @@ class Endotyper:
                                                                           term_library,
                                                                           sig_threshold = sig_threshold)
         return self
-    
-    def define_endotypes(self):
 
-        """
-        Define endotypes based on the annotated local neighborhoods.
-        This function computes the feature matrix from the neighborhood annotations (binary matrix) that describes which
-        enrichment terms are present for each gene based on the enrichment of the gene +local neighborhood.
-        The feature matrix is a binary matrix where rows are genes and columns are enrichment terms.
-        Each entry is 1 if the term is present for the gene, and 0 otherwise.
-
-        It then performs recursive clustering to identify endotypes.
-
-        Returns:
-            self: The Endotyper object with the endotypes defined.
-        """
-        # make feature matrix
-        self.feature_matrix = compute_feature_matrix(self.neighborhood_annotation)
-        # recursive clustering
-        self.endotypes = recursive_endotyping(self.feature_matrix)
-
-        #print(f"Found {len(self.endotypes)} endotypes")
-    
-        return self
     
     def define_kl_endotypes(self,distance_metric: str = 'hamming', linkage_method: str = 'complete',alpha: float = 0.05):
 
@@ -260,45 +285,15 @@ class Endotyper:
                                                   alpha=alpha)
 
         return self
-
-        #print(f"Found {len(self.endotypes)} endotypes")
     
 
-    #_TYPES = Literal['degree', 'betweenness']
 
-    def plot_endotype(self, iteration: int, cluster_id: int= None,
-                        node_size: list = ['degree', 'betweenness'],
-                        path_length: int = 2):
-    
-        """Plots the endotype network for a given iteration and cluster.
-        This function generates a network plot visualizing the identified endotype,
-        highlighting seed genes, endotype genes, and connecting genes within the larger network.
-        Args:
-            iteration (int): The iteration number of the endotyping clustering process.
-            cluster_id (int, optional): The ID of the cluster to plot. If None, defaults to the first cluster. Defaults to None.
-            node_size (list, optional): A list of network measures to use for node sizing.
-                Defaults to ['degree', 'betweenness'].
-            path_length (int, optional): The path length to consider when connecting endotype genes. Defaults to 2.
-        """
-    
-        if cluster_id is None:
-            print(f"No cluster ID provided, defaulting to first cluster")
-            cluster_id = list(self.endotypes[f'It_{iteration}'].keys())[0]
-        
-        if iteration == len(self.endotypes):
-            plot_endotype(self.endotypes[f'It_{iteration}']['Final_Cluster'],self.network,
-            self.seeds,node_size=node_size,path_length=path_length)
-        
-        else:
-            plot_endotype(self.endotypes[f'It_{iteration}'][cluster_id],self.network,
-                                    self.seeds,node_size=node_size,path_length=path_length)
-
-
-    def plot_multiple_endotypes(self, node_size: list = ['degree', 'betweenness'], layout: str = 'spring', path_length: int = 2):
+    def plot_endotypes(self, node_size: list = ['degree', 'betweenness'], layout: str = 'spring', path_length: int = 2):
 
         """Plots multiple endotypes on the network.
-            This function iterates through the endotypes dictionary, combining endotypes from different iterations into a single dictionary.
-            It then calls the `plot_multiple_endotypes` function to visualize these combined endotypes on the network.
+            This function visualizes the identified endotypes on the connected subnetwork (disease module),
+            highlighting the nodes that belong to each endotype.
+            
             Args:
                 node_size (list, optional): network measures to use for node sizing.
                 Defaults to ['degree', 'betweenness'].
@@ -306,20 +301,13 @@ class Endotyper:
                 path_length (int, optional): The path length to use for shortest path calculations. Defaults to 2.
             """
         
-        #combine endotypes from different iterations into a single dictionary
-        endotype_clustering_joined = {}
-        for iteration_key in self.endotypes.keys():
-            for endotype in self.endotypes[iteration_key].keys():
-             endotype_clustering_joined[f"{iteration_key}_{endotype}"] = self.endotypes[iteration_key][endotype]
-
-        plot_multiple_endotypes(endotype_clustering_joined, 
+        plot_multiple_endotypes(self.endotypes[2], 
                                       self.network, self.seeds, 
-                                      size_height=8, size_width=14, 
+                                      size_height=10, size_width=10, 
                                       node_size= node_size, 
                                       path_length=path_length,
                                       limit_lcc=True,
-                                      layout=layout,
-                                      #layout_seed=2025
+                                      layout=layout
                                       )
     
 
@@ -330,7 +318,9 @@ class Endotyper:
         """Plots endotypes in a grid layout using Plotly with optional GSEA visualization.
         
         This function creates an interactive grid visualization of all identified endotypes,
-        combining endotypes from different iterations into a single grid view.
+        showing each endotype as a separate subnetwork and the associated enrichment of the nodes
+        present in the endotype specific subnetwork.
+
         
         Args:
             size_height (int, optional): Height of each subplot in pixels. Defaults to 500.
@@ -377,6 +367,34 @@ class Endotyper:
                                   top_terms=top_terms, 
                                   force_download=False, 
                                   gsea_plot_type=gsea_plot_type)
+    
+    def plot_endotypes_metagraph(self, filter_size_endotypes=True, node_size=15):
+        """ 
+        Build an endotype metagraph visualization where individual endotype subgraphs 
+        (positioned via spring layout) are clustered at meta-positions (determined by 
+        inter-endotype connectivity), then globally scaled and rendered with colored 
+        hulls, intra-endotype edges, inter-endotype connections, and seed gene 
+        highlighted using datamapplot and matplotlib.
+        
+        Args:
+            filter_size_endotypes (bool, optional): Choose to filter endotypes by size:
+                select only endotypes subgraphs with at least one edge and more than 5 nodes.
+                Defaults to True.
+            node_size (int, optional): Size of nodes in the plot. Defaults to 15.
+        """
+        
+        # Check if endotypes is from KL clustering (tuple) or recursive clustering (dict)
+        if isinstance(self.endotypes, tuple):
+            # KL clustering returns (predicted_labels, cluster_assignments, cluster_dict)
+            # cluster_dict is at index 2
+            endotype_clustering_joined = self.endotypes[2]
+        else:
+            # Old recursive clustering returns nested dict with iterations
+            for iteration_key in self.endotypes.keys():
+                for endotype in self.endotypes[iteration_key].keys():
+                    endotype_clustering_joined[f"{iteration_key}_{endotype}"] = self.endotypes[iteration_key][endotype]
+        
+        plot_endotypes_metagraph(self.network, endotype_clustering_joined, self.seeds, filter_size_endotypes, node_size)
 
 
 

@@ -15,3 +15,4 @@ dev_package_debug.ipynb
 *.egg-info/
 dist/
 *.pkl
+*.tsv

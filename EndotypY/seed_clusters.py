@@ -12,19 +12,35 @@ from EndotypY.rwr import extract_connected_module
 def run_seed_clustering(G, 
                         seed_genes,
                         d_rwr_individuals, k_max=200):
-    """
-    Run the seed clustering process.
-    This function computes the RWR for each seed gene, clusters them based on
-    their neighborhoods, and plots the results.
-    
-    Parameters:
-        - G: NetworkX graph representing the connected protein-protein interaction network.
-        - seed_genes: List of seed genes to be clustered.
-        - scaling: Scaling matrix for the RWR algorithm.
-        - rwr_matrix: RWR matrix for the graph.
-        - scaling_matrix: Scaling matrix for the graph.
-        - d_idx_ensembl: Dictionary mapping indices to Ensembl IDs.
-        - k_max: Maximum neighborhood size to test.
+    """Identifies clusters of seed genes based on their network neighborhoods.
+
+    This function orchestrates the seed clustering process. If the seed genes
+    are already connected, they are treated as a single cluster. Otherwise, it
+    iteratively clusters the seeds based on the overlap of their Random Walk
+    with Restart (RWR) neighborhoods across a range of neighborhood sizes (k).
+
+    The process is parallelized to test different `k` values efficiently. It
+    then identifies an optimal `k` by finding a "plateau" where the number of
+    clusters remains stable. Finally, it visualizes the clustering results
+    and returns the optimal seed clusters.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        The background graph for clustering.
+    seed_genes : list
+        A list of seed genes to be clustered.
+    d_rwr_individuals : dict
+        A dictionary of precomputed RWR results for each individual seed gene.
+        Keys are seed genes, and values are their RWR probability dictionaries.
+    k_max : int, optional
+        The maximum neighborhood size (k) to test for clustering, by default 200.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are cluster identifiers (e.g., 'cluster_seed_1')
+        and values are lists of genes belonging to that cluster.
     """
     # CHECK IF THE SEED GENES ARE ALREADY CONNECTED, SKIP THE CLUSTERING IF SO
     subgraph_seeds = nx.subgraph(G, seed_genes)
@@ -143,6 +159,42 @@ def _find_first_plateau(cluster_counts, min_plateau_length=3):
 
 
 def _cluster_seed_genes(G, seed_genes, d_rwr_individuals, rwr_threshold):
+    """Clusters seed genes based on the overlap of their RWR neighborhoods.
+
+    This is a worker function used by `run_seed_clustering`. It performs one
+    round of clustering for a given neighborhood size (`rwr_threshold`).
+
+    The clustering logic is as follows:
+    1. For each seed gene, determine its network neighborhood using the
+       precomputed RWR results and the specified `rwr_threshold`.
+    2. Construct a new graph where the nodes are the seed genes.
+    3. Add an edge between two seed genes in this new graph if their
+       RWR-defined neighborhoods have at least one node in common (overlap).
+    4. The connected components of this new graph represent the final clusters
+       of seed genes.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        The background graph.
+    seed_genes : list
+        The list of seed genes to cluster.
+    d_rwr_individuals : dict
+        A dictionary with precomputed RWR results for each individual seed gene.
+        The keys are seed genes, and values are dictionaries of node
+        probabilities.
+    rwr_threshold : int
+        The size (`k`) of the neighborhood to extract for each seed gene based
+        on RWR rankings.
+
+    Returns
+    -------
+    tuple[int, list[list[str]]]
+        A tuple containing:
+        - n_clusters (int): The total number of clusters found.
+        - final_clusters (list[list[str]]): A list where each inner list
+          represents a cluster of seed genes.
+    """
 
     #get neighborhoods for each seed gene at the given rwr_threshold (k)
     neighborhoods = {}

@@ -18,7 +18,12 @@ setup(
         'gseapy',
         'threadpoolctl',
         'biopython',
-
+        'nbformat>=4.2.0',
+        'requests',
+        'kl-clustering-analysis[viz] @ git+https://github.com/EnesSakalliUniWien/kl-tree-cluster.git@Only-Topology-Test',
+        'plotly',
+        'biothings-client',
+        'datamapplot',
     ],
     entry_points={
         'console_scripts': [

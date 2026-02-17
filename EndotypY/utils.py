@@ -18,10 +18,6 @@ def convert_symbols_to_entrez(gene_ids):
     symbols = [x['entrezgene'] for x in results if 'entrezgene' in x]
     return symbols
 
-# def convert_top_genes_to_symbols(top_genes):
-#     with mp.Pool(mp.cpu_count() - 2) as pool:
-#         results = pool.map(convert_entrez_to_symbols, top_genes.values())
-#     return dict(zip(top_genes.keys(), results))
 
 def download_enrichr_library(enrichr_lib: str, organism='Human', force_download=False):
     """Downloads and caches Enrichr library locally."""

@@ -1,12 +1,48 @@
 import numpy as np
 import pandas as pd
-from kl_clustering_analysis.tree.poset_tree import PosetTree
-from kl_clustering_analysis import config
+from kl_clustering_analysis.tree.poset_tree import PosetTree #type: ignore
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
-from sklearn.datasets import make_blobs
-from sklearn.metrics import adjusted_rand_score
 
+
+# Create a feature binary feature matrix, where each row is a gene and each column is a GO term
+def compute_feature_matrix(go_terms_dict):
+    """
+    Create a binary feature matrix from a dictionary of GO terms for each gene.
+    
+    Parameters
+    ----------
+    go_terms_dict : dict
+        Dictionary of unique GO term IDs for each gene in the disease core module.
+        
+    Returns
+    -------
+    feature_matrix : pd.DataFrame
+        Binary feature matrix where rows corresponds to gene IDs and columns represent GO term IDs.
+    """
+
+    # Get all unique GO terms
+    all_go_terms = list(set([term for terms in go_terms_dict.values() for term in terms]))
+
+    # Create an empty feature matrix
+    feature_matrix = np.zeros((len(go_terms_dict), len(all_go_terms)))
+
+    # Fill the feature matrix
+    for i, gene_symbol in enumerate(go_terms_dict.keys()):
+        gene_terms = go_terms_dict[gene_symbol]
+        for j, term in enumerate(all_go_terms):
+            if term in gene_terms:
+                feature_matrix[i, j] = 1
+
+    feature_matrix = pd.DataFrame(feature_matrix, columns=all_go_terms, index=go_terms_dict.keys()).astype(int)
+    # Remove rows where all elements are 0
+    zero_sum_rows = feature_matrix[feature_matrix.sum(axis=1) == 0]
+    if not zero_sum_rows.empty:
+        removed_samples = zero_sum_rows.index.tolist()
+        print(f"Warning: Removed {len(removed_samples)} gene(s) with no associated terms: {removed_samples}")
+        feature_matrix = feature_matrix[feature_matrix.sum(axis=1) > 0]
+
+    return feature_matrix
 
 def kl_clustering_endotypes(data: pd.DataFrame, linkage_method: str = 'complete', distance_metric: str = 'hamming', alpha: float = 0.05) -> dict:
     """

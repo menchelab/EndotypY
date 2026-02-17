@@ -1,16 +1,19 @@
+import io
 import matplotlib.pyplot as plt #type: ignore
 import seaborn as sns #type: ignore
 import networkx as nx  
 import numpy as np 
 import copy
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import plotly.graph_objects as go #type: ignore
+from plotly.subplots import make_subplots #type: ignore
 import gseapy as gp #type: ignore
 from .utils import download_enrichr_library
-
-
-
-
+from IPython.display import SVG, display
+from scipy.spatial.distance import pdist
+from scipy.spatial import ConvexHull
+from itertools import combinations
+import datamapplot #type: ignore
+import math
 # =============================================================================
 
 def plot_endotype(endotype, G, seed_genes,size_height=14, size_width=14,node_size='betweenness',path_length=2,endotype_color='cornflowerblue',layout_seed=2025,return_plot=True):
@@ -116,7 +119,7 @@ def plot_endotype(endotype, G, seed_genes,size_height=14, size_width=14,node_siz
     return subgraph
 
 # =============================================================================
-def plot_multiple_endotypes(endotypes, G, seed_genes, size_height=14, size_width=14, node_size=100, path_length=2, layout_seed=2025, layout='spring', limit_lcc=True):
+def plot_multiple_endotypes(endotypes, G, seed_genes, size_height=18, size_width=20, node_size=100, path_length=2, layout_seed=2025, layout='spring', limit_lcc=True):
     """
     Draws multiple endotypes in a single plot.
 
@@ -150,7 +153,6 @@ def plot_multiple_endotypes(endotypes, G, seed_genes, size_height=14, size_width
 
     # Generate colors for endotypes
     endotype_colors = sns.color_palette("hsv", n_colors=len(endotypes))
-    #endotype_colors = [f"rgb({int(c[0]*255)}, {int(c[1]*255)}, {int(c[2]*255)})" for c in endotype_colors]
 
     # Combine all endotypes into a single graph
     combined_subgraph = nx.Graph()
@@ -220,10 +222,20 @@ def plot_multiple_endotypes(endotypes, G, seed_genes, size_height=14, size_width
     plt.title('Network of Multiple Endotypes', fontsize=16, fontweight='bold')
     plt.axis('off')
     # Add legend indicating the color of each endotype
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f'Endotype: {name}', markerfacecolor=color, markersize=8) for name, color in zip(endotypes.keys(), endotype_colors)]
-    legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', label='Seed Genes', markersize=8, markeredgecolor='black'))
-    plt.legend(handles=legend_elements, loc='upper right', fontsize=6)
-    plt.show()
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f'Endotype: {name}', markerfacecolor=color, markersize=10) for name, color in zip(endotypes.keys(), endotype_colors)]
+    legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', label='Seed Genes', markersize=10, markeredgecolor='black'))
+    plt.legend(handles=legend_elements, loc='upper right', fontsize=8)
+    
+    # Save the plot to an in-memory SVG buffer
+    svg_buffer = io.StringIO()
+    plt.savefig(svg_buffer, format='svg', bbox_inches='tight')
+    plt.close()  # Close the plot to prevent it from displaying in a low-resolution window
+    
+    # Display the SVG from the buffer.
+    try:
+        display(SVG(svg_buffer.getvalue()))
+    except (ImportError, NameError):
+        print("Could not display SVG in this environment. The plot is not shown.")
 
     return combined_subgraph
 

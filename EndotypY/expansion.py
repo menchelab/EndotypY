@@ -21,7 +21,7 @@ def calculate_top_genes(G, input_gene_list,
                         rwr_matrix, scaling_matrix, d_idx_ensembl,
                         neighbor_percentage=1, scaling=True):
     """
-    Calculate the top 1% genes for each gene in input_gene_list using Random Walk with Restart (RWR) algorithm.
+    Calculate the top n% genes for each gene in input_gene_list using Random Walk with Restart (RWR) algorithm.
     
     Parameters
     ----------
