@@ -16,3 +16,6 @@ dev_package_debug.ipynb
 dist/
 *.pkl
 *.tsv
+build/
+Makefile
+make.bat

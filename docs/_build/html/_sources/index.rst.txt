@@ -1,0 +1,20 @@
+.. EndotypY documentation master file.
+
+Welcome to EndotypY's documentation!
+====================================
+
+This is the central documentation for the EndotypY package.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   modules
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
