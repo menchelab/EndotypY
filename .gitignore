@@ -17,5 +17,6 @@ dist/
 *.pkl
 *.tsv
 build/
+build/lib/EndotypY
 Makefile
 make.bat
