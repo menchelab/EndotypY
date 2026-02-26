@@ -1,0 +1,385 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EndotypY.expansion &mdash; EndotypY 0.0.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=e3a6060d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EndotypY
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../concept.html">The Concept of Endotyping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">EndotypY</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EndotypY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EndotypY.expansion</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EndotypY.expansion</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gprofiler</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gprofiler</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gseapy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gp</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">EndotypY.rwr</span><span class="w"> </span><span class="kn">import</span> <span class="n">rwr_from_individual_genes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EndotypY.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_entrez_to_symbols</span>
+
+
+
+<div class="viewcode-block" id="calculate_top_genes">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.calculate_top_genes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_top_genes</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">input_gene_list</span><span class="p">,</span>
+                        <span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">scaling_matrix</span><span class="p">,</span> <span class="n">d_idx_ensembl</span><span class="p">,</span>
+                        <span class="n">neighbor_percentage</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the top n% genes for each gene in input_gene_list using Random Walk with Restart (RWR) algorithm.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G : nx.Graph object</span>
+<span class="sd">        NetworkX graph object.</span>
+<span class="sd">    input_gene_list : list of str</span>
+<span class="sd">        List of genes.</span>
+
+<span class="sd">    scaling : bool</span>
+<span class="sd">        Whether to scale the visiting probabilities.</span>
+<span class="sd">    W : numpy array</span>
+<span class="sd">        Random walk matrix.</span>
+<span class="sd">    Dinvsqrt : numpy array</span>
+<span class="sd">        Diagonal matrix of the inverse degree of the nodes.</span>
+<span class="sd">    d_ensembl_idx : dict</span>
+<span class="sd">        Dictionary mapping gene Ensembl IDs to their indices.</span>
+<span class="sd">    d_idx_ensembl : dict</span>
+<span class="sd">        Dictionary mapping indices to gene Ensembl IDs.</span>
+<span class="sd">    neighbor_percentage : float</span>
+<span class="sd">        Percentage of top genes to identify.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    top_genes : dict</span>
+<span class="sd">        Dictionary of the desired top % genes for each gene in input_gene_list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># perform gene specific RWR</span>
+    <span class="n">individual_rwr_results</span> <span class="o">=</span> <span class="n">rwr_from_individual_genes</span><span class="p">(</span>
+                            <span class="n">seed_genes</span><span class="o">=</span><span class="n">input_gene_list</span><span class="p">,</span>
+                            <span class="n">G</span><span class="o">=</span><span class="n">G</span><span class="p">,</span>
+                            <span class="n">scaling</span><span class="o">=</span><span class="n">scaling</span><span class="p">,</span>
+                            <span class="n">rwr_matrix</span><span class="o">=</span><span class="n">rwr_matrix</span><span class="p">,</span>
+                            <span class="n">scaling_matrix</span><span class="o">=</span><span class="n">scaling_matrix</span><span class="p">,</span>
+                            <span class="n">d_idx_ensembl</span><span class="o">=</span><span class="n">d_idx_ensembl</span><span class="p">)</span>
+
+    <span class="c1"># Convert probability dictionaries to sorted gene lists</span>
+    <span class="n">individual_rwr_ranked</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">input_gene_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">individual_rwr_results</span><span class="p">:</span>
+            <span class="c1"># Sort genes by their visiting probabilities in descending order</span>
+            <span class="n">sorted_genes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">individual_rwr_results</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> 
+                                <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># Extract just the gene names (not the probabilities)</span>
+            <span class="n">individual_rwr_ranked</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">gene_name</span> <span class="k">for</span> <span class="n">gene_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">sorted_genes</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">individual_rwr_ranked</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Get a dictionary of the desired top % genes for each gene in input_gene_list</span>
+    <span class="n">neighbor_percentage</span> <span class="o">=</span> <span class="n">neighbor_percentage</span> <span class="o">/</span> <span class="mi">100</span>
+    <span class="n">top_genes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">input_gene_list</span><span class="p">:</span>
+        <span class="n">top_genes</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="o">=</span> <span class="n">individual_rwr_ranked</span><span class="p">[</span><span class="n">gene</span><span class="p">][:</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">individual_rwr_ranked</span><span class="p">[</span><span class="n">gene</span><span class="p">])</span> <span class="o">*</span> <span class="n">neighbor_percentage</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">top_genes</span></div>
+
+
+
+
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="get_GSEA_significant_terms">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.get_GSEA_significant_terms">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_GSEA_significant_terms</span><span class="p">(</span><span class="n">gene_list</span><span class="p">,</span><span class="n">library</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="p">,</span> <span class="n">organism</span><span class="o">=</span><span class="s1">&#39;human&#39;</span><span class="p">,</span><span class="n">background</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform Gene Set Enrichment Analysis (GSEA) using gseapy&#39;s enrichr implementarion and return significant terms.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gene_list : list</span>
+<span class="sd">        List of genes to analyze.</span>
+<span class="sd">    library : gene set enrichment library</span>
+<span class="sd">        Dictionary of term - gene associations (output of gp.get_library() function).</span>
+<span class="sd">    background : list</span>
+<span class="sd">        Background gene list (default: None).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    significant_terms : list</span>
+<span class="sd">        List of significant terms from GSEA.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">enr_bg</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">enrich</span><span class="p">(</span><span class="n">gene_list</span><span class="o">=</span><span class="n">gene_list</span><span class="p">,</span>
+                       <span class="n">gene_sets</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
+                       <span class="n">background</span><span class="o">=</span><span class="n">background</span><span class="p">,</span>
+                       <span class="n">outdir</span><span class="o">=</span><span class="kc">None</span>
+                      <span class="p">)</span>
+    
+    <span class="c1"># Filter results for significant terms, if any</span>
+
+    <span class="k">if</span> <span class="n">enr_bg</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="c1">#print(&quot;No significant terms found.&quot;)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">filtered_results</span> <span class="o">=</span> <span class="n">enr_bg</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="n">enr_bg</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;Adjusted P-value&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sig_threshold</span><span class="p">]</span>
+        <span class="n">significant_terms</span> <span class="o">=</span> <span class="n">filtered_results</span><span class="p">[</span><span class="s1">&#39;Term&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">significant_terms</span></div>
+
+
+
+<div class="viewcode-block" id="convert_gs_lib_to_dict">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.convert_gs_lib_to_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_gs_lib_to_dict</span><span class="p">(</span><span class="n">go_terms_dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a dictionary of enrichment terms from the format {term: [gene1, gene2, ...]} to</span>
+<span class="sd">    the format {gene: [term1, term2, ...]}.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    go_terms_dict : dict or list</span>
+<span class="sd">        Dictionary where keys are enrichment term IDs and values are lists of gene symbols associated with those terms.</span>
+<span class="sd">        Or a list from gseapy that needs to be handled differently.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    go_terms : dict</span>
+<span class="sd">        Dictionary where keys are gene symbols and values are lists of enrichment term IDs associated with those genes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">go_terms</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">go_terms_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">genes</span> <span class="ow">in</span> <span class="n">go_terms_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">genes</span><span class="p">:</span>
+                <span class="n">go_terms</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">go_terms</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="get_gene_and_neighborhood_enrichment_terms">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.get_gene_and_neighborhood_enrichment_terms">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_gene_and_neighborhood_enrichment_terms</span><span class="p">(</span><span class="n">gene</span><span class="p">,</span><span class="n">top_genes</span><span class="p">,</span><span class="n">term_library</span><span class="p">,</span><span class="n">sig_threshold</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the Gene Ontology (GO) terms for a given gene symbol and its neighbors.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gene : str</span>
+<span class="sd">        Gene symbol (HGNC) of the gene.</span>
+<span class="sd">    top_genes : dict</span>
+<span class="sd">        Dictionary of the desired top % genes for each gene in input_gene_list (output of calculate_top_genes() function).</span>
+<span class="sd">    term_library : dict</span>
+<span class="sd">        Dictionary of term - gene associations (output of gp.get_library() function).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    all_go_terms : list</span>
+<span class="sd">        List of unique GO term IDs for the gene and its neighbors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Format term_library from gseapy output to a dictionary of gene - term associations</span>
+    <span class="n">term_library_ori</span> <span class="o">=</span> <span class="n">convert_gs_lib_to_dict</span><span class="p">(</span><span class="n">term_library</span><span class="p">)</span>
+
+    <span class="c1"># extract gene to to process and convert to gene symbol if necessary</span>
+    <span class="c1"># if gene.isdigit():</span>
+    <span class="c1">#     gene_symbol = convert_entrez_to_symbols([gene])#[0]</span>
+    <span class="c1"># else:</span>
+    <span class="c1">#     gene_symbol = gene</span>
+
+    <span class="c1">#extract neighborhood and convert to gene symbols if necessary</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">top_genes</span><span class="p">[</span><span class="n">gene</span><span class="p">]):</span>
+        <span class="n">neighborhood</span> <span class="o">=</span> <span class="n">convert_entrez_to_symbols</span><span class="p">(</span><span class="n">top_genes</span><span class="p">[</span><span class="n">gene</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">neighborhood</span> <span class="o">=</span> <span class="n">top_genes</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span>
+        
+    <span class="c1"># Get original terms of the gene</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># If the gene symbol is found in the term library, get its terms</span>
+        <span class="k">if</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">term_library_ori</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">ori_go_terms</span> <span class="o">=</span> <span class="n">term_library_ori</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ori_go_terms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If the gene symbol is not found, return an empty list</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Gene symbol </span><span class="si">{</span><span class="n">gene</span><span class="si">}</span><span class="s2"> not found in term library.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    
+    <span class="c1"># convert term_library to a list if it is not already</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term_library</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">term_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">term_library</span><span class="p">]</span>
+
+    <span class="c1"># Run GSEA for the neighbors</span>
+    <span class="n">neighbor_go_terms_list</span> <span class="o">=</span> <span class="n">get_GSEA_significant_terms</span><span class="p">(</span><span class="n">neighborhood</span><span class="p">,</span>
+                                                        <span class="n">library</span><span class="o">=</span><span class="n">term_list</span><span class="p">,</span>
+                                                        <span class="n">sig_threshold</span><span class="o">=</span><span class="n">sig_threshold</span><span class="p">,</span>
+                                                        <span class="n">organism</span><span class="o">=</span><span class="s1">&#39;human&#39;</span><span class="p">,</span>
+                                                        <span class="n">background</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Join ori_go_terms with the neighbor_go_terms_list</span>
+    <span class="n">neighbor_go_terms</span> <span class="o">=</span> <span class="n">ori_go_terms</span> <span class="o">+</span> <span class="n">neighbor_go_terms_list</span>
+
+    <span class="c1"># Remove duplicates</span>
+    <span class="n">all_go_terms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">neighbor_go_terms</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">all_go_terms</span></div>
+
+
+
+<span class="c1"># =============================================================================</span>
+
+
+<div class="viewcode-block" id="process_gene">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.process_gene">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_gene</span><span class="p">(</span><span class="n">gene</span><span class="p">,</span> <span class="n">top_genes</span><span class="p">,</span> <span class="n">term_library</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process a single gene to retrieve its GO terms.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gene : str</span>
+<span class="sd">        Gene symbol to process.</span>
+<span class="sd">    top_genes : dict</span>
+<span class="sd">        Dictionary of top genes.</span>
+<span class="sd">    term_library : dict</span>
+<span class="sd">        Dictionary of term - gene associations.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        A tuple containing the gene symbol and its associated GO terms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#convert gene to gene symbol if necessary</span>
+    <span class="c1"># if gene.isdigit():</span>
+    <span class="c1">#     gene = convert_entrez_to_symbols([gene])</span>
+
+    <span class="k">return</span> <span class="n">gene</span><span class="p">,</span> <span class="n">get_gene_and_neighborhood_enrichment_terms</span><span class="p">(</span><span class="n">gene</span><span class="p">,</span> <span class="n">top_genes</span><span class="o">=</span><span class="n">top_genes</span><span class="p">,</span> <span class="n">term_library</span><span class="o">=</span><span class="n">term_library</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="o">=</span><span class="n">sig_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_module_neighborhood_terms_dict">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.expansion.get_module_neighborhood_terms_dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_module_neighborhood_terms_dict</span><span class="p">(</span><span class="n">top_genes</span><span class="p">,</span> <span class="n">term_library</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the Gene Ontology (GO) terms for all genes in a given disease core module using parallel processing.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    top_genes : dict</span>
+<span class="sd">        Dictionary of the desired top % genes for each gene in input_gene_list (output of calculate_top_genes() function).</span>
+<span class="sd">    term_library : dict</span>
+<span class="sd">        Dictionary of term - gene associations (output of gp.get_library() function).</span>
+<span class="sd">    n_cores : int, optional</span>
+<span class="sd">        Number of cores to use for parallel processing (default: mp.cpu_count() - 2).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    go_terms_dict : dict</span>
+<span class="sd">        Dictionary of unique GO term IDs for each gene in the disease core module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Use multiprocessing to process genes in parallel</span>
+    <span class="n">n_cores</span><span class="o">=</span><span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">2</span>
+
+    <span class="k">with</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">n_cores</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="n">process_gene</span><span class="p">,</span> <span class="p">[(</span><span class="n">gene</span><span class="p">,</span> <span class="n">top_genes</span><span class="p">,</span> <span class="n">term_library</span><span class="p">,</span> <span class="n">sig_threshold</span><span class="p">)</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">top_genes</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+
+    <span class="c1"># Combine results into a dictionary</span>
+    <span class="n">go_terms_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">go_terms_dict</span></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chloé Bûcheron, Iker Núñez-Carpintero, Mathilde Meyenberg, Enes Sakalli.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,299 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EndotypY.rwr &mdash; EndotypY 0.0.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=e3a6060d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EndotypY
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../concept.html">The Concept of Endotyping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">EndotypY</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EndotypY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EndotypY.rwr</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EndotypY.rwr</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span> <span class="c1">#type: ignore</span>
+
+
+<div class="viewcode-block" id="make_p0">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.rwr.make_p0">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_p0</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">scaling</span><span class="p">:</span><span class="nb">bool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates the initial probability vector (p0) for the Random Walk with Restart.</span>
+
+<span class="sd">    This vector represents the starting probabilities for each node in the graph.</span>
+<span class="sd">    Nodes in the seed set are assigned an initial probability, while all other</span>
+<span class="sd">    nodes start with a probability of 0. The assignment can be scaled by node</span>
+<span class="sd">    degree.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G : nx.Graph</span>
+<span class="sd">        The graph on which the random walk will be performed.</span>
+<span class="sd">    seeds : list or set</span>
+<span class="sd">        A collection of seed nodes that will have non-zero initial probabilities.</span>
+<span class="sd">    scaling : bool</span>
+<span class="sd">        If True, the initial probability for seed nodes is scaled by the</span>
+<span class="sd">        square root of their degree. If False, it is set to 1.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.ndarray</span>
+<span class="sd">        The initial probability vector (p0), where the i-th element corresponds</span>
+<span class="sd">        to the i-th node in the sorted list of graph nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nodelist</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodelist</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nodelist</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seeds</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">scaling</span><span class="p">:</span>
+                <span class="n">deg</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">degree</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+                <span class="n">p0</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">deg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">p0</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">p0</span></div>
+
+
+<div class="viewcode-block" id="rwr">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.rwr.rwr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rwr</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">scaling_matrix</span><span class="p">,</span> <span class="n">d_idx_ensembl</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Performs a Random Walk with Restart (RWR) from a given set of seed genes.</span>
+
+<span class="sd">    This function calculates the steady-state probability distribution of a random</span>
+<span class="sd">    walker that starts from the specified seed genes and randomly moves through</span>
+<span class="sd">    the graph, with a constant probability of restarting from the seed nodes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G : nx.Graph</span>
+<span class="sd">        The graph on which the random walk is performed.</span>
+<span class="sd">    seed_genes : list</span>
+<span class="sd">        A list of seed genes from which the random walk originates.</span>
+<span class="sd">    scaling : bool</span>
+<span class="sd">        If True, applies degree-based scaling to the initial probabilities</span>
+<span class="sd">        and the final probability vector.</span>
+<span class="sd">    rwr_matrix : np.ndarray</span>
+<span class="sd">        The precomputed Random Walk with Restart matrix.</span>
+<span class="sd">    scaling_matrix : np.ndarray</span>
+<span class="sd">        The precomputed diagonal matrix used for scaling, typically based on</span>
+<span class="sd">        node degrees.</span>
+<span class="sd">    d_idx_ensembl : dict</span>
+<span class="sd">        A dictionary mapping the integer index of a node in the matrix to its</span>
+<span class="sd">        corresponding gene identifier.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        A dictionary where keys are gene identifiers and values are their</span>
+<span class="sd">        final visiting probabilities from the RWR.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">make_p0</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span> <span class="n">scaling</span><span class="p">)</span>
+
+    <span class="c1"># apply the RW operator on the visiting probability vector (with optional scaling)</span>
+    <span class="k">if</span> <span class="n">scaling</span><span class="p">:</span>
+        <span class="n">pinf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">scaling_matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">p0</span><span class="p">)))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pinf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">p0</span><span class="p">)</span>
+
+    <span class="c1"># Map probabilities to gene names</span>
+    <span class="n">gene_probabilities</span> <span class="o">=</span> <span class="p">{</span><span class="n">d_idx_ensembl</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">prob</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pinf</span><span class="p">)}</span>
+
+    <span class="k">return</span> <span class="n">gene_probabilities</span></div>
+
+
+
+<div class="viewcode-block" id="rwr_from_individual_genes">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.rwr.rwr_from_individual_genes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rwr_from_individual_genes</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span> <span class="n">scaling</span><span class="p">:</span><span class="nb">bool</span><span class="p">,</span>
+                              <span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">scaling_matrix</span><span class="p">,</span> <span class="n">d_idx_ensembl</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Executes Random Walk with Restart (RWR) for each seed gene individually.</span>
+
+<span class="sd">    This function iterates through a list of seed genes and performs a separate</span>
+<span class="sd">    RWR for each one. It&#39;s a wrapper around the main `rwr` function, designed</span>
+<span class="sd">    to analyze the network neighborhood and influence of each seed gene on its own.</span>
+
+<span class="sd">    A progress bar is displayed to track the process.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G : nx.Graph</span>
+<span class="sd">        The graph on which the random walks are performed.</span>
+<span class="sd">    seed_genes : list</span>
+<span class="sd">        A list of seed genes, where each gene will be the starting point for an</span>
+<span class="sd">        independent RWR.</span>
+<span class="sd">    scaling : bool</span>
+<span class="sd">        If True, applies degree-based scaling for each RWR calculation.</span>
+<span class="sd">    rwr_matrix : np.ndarray</span>
+<span class="sd">        The precomputed Random Walk with Restart matrix.</span>
+<span class="sd">    scaling_matrix : np.ndarray</span>
+<span class="sd">        The precomputed diagonal matrix used for scaling.</span>
+<span class="sd">    d_idx_ensembl : dict</span>
+<span class="sd">        A dictionary mapping node indices to their corresponding gene identifiers.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        A dictionary where each key is a seed gene. The corresponding value is</span>
+<span class="sd">        another dictionary containing the RWR visiting probabilities from that</span>
+<span class="sd">        seed to all other nodes in the graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rwr_per_gene</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">seed_genes</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Running RWR for seed genes&quot;</span><span class="p">):</span>
+        <span class="n">rwr_per_gene</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="o">=</span> <span class="n">rwr</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">[</span><span class="n">gene</span><span class="p">],</span> <span class="n">scaling</span><span class="p">,</span>
+                                 <span class="n">rwr_matrix</span><span class="p">,</span> <span class="n">scaling_matrix</span><span class="p">,</span>
+                                 <span class="n">d_idx_ensembl</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rwr_per_gene</span></div>
+
+
+
+
+
+<div class="viewcode-block" id="extract_connected_module">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.rwr.extract_connected_module">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_connected_module</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span> <span class="n">rwr_results</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts a connected subgraph (module) from the graph based on RWR results.</span>
+
+<span class="sd">    This function first creates a core module by combining the initial seed genes</span>
+<span class="sd">    with the top `k` genes from the Random Walk with Restart (RWR) results.</span>
+<span class="sd">    It then iteratively expands this module by adding more top-ranked genes until</span>
+<span class="sd">    the resulting subgraph is fully connected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    G : nx.Graph</span>
+<span class="sd">        The background graph from which the module is extracted.</span>
+<span class="sd">    seed_genes : list</span>
+<span class="sd">        The initial list of seed genes for module creation.</span>
+<span class="sd">    rwr_results : dict</span>
+<span class="sd">        A dictionary mapping gene identifiers to their RWR visiting probabilities.</span>
+<span class="sd">    k : int</span>
+<span class="sd">        The number of top-ranked (non-seed) genes to include in the initial</span>
+<span class="sd">        module.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[list, nx.Graph]</span>
+<span class="sd">        A tuple containing:</span>
+<span class="sd">        - disease_module (list): The final list of genes in the connected module.</span>
+<span class="sd">        - subgraph (nx.Graph): The connected subgraph corresponding to the</span>
+<span class="sd">          disease_module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Sort the genes by their visiting probabilities in descending order</span>
+    <span class="n">d_gene_pvis_sorted</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">rwr_results</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="c1">#obtain the ranking without seed genes</span>
+    <span class="n">rwr_rank_without_seed_genes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d_gene_pvis_sorted</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">g</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seed_genes</span><span class="p">]</span>
+
+    <span class="c1"># form disease module</span>
+    <span class="n">disease_module</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">if</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span> <span class="c1">#seed genes in the graph</span>
+    <span class="n">disease_module</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rwr_rank_without_seed_genes</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span> <span class="c1">#extending disease module with the top ranked genes up to k</span>
+
+    <span class="c1">#if the disease module is not connected, add the next ranked genes until it is connected</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">subgraph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">subgraph</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">disease_module</span><span class="p">)</span>
+    
+    <span class="c1"># Add protection against infinite loop</span>
+    <span class="n">max_iterations</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rwr_rank_without_seed_genes</span><span class="p">)</span> <span class="o">-</span> <span class="n">k</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_connected</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">max_iterations</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">+</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">rwr_rank_without_seed_genes</span><span class="p">):</span>
+            <span class="n">disease_module</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rwr_rank_without_seed_genes</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="n">i</span><span class="p">])</span>
+            <span class="n">subgraph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">subgraph</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">disease_module</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+
+    <span class="k">return</span> <span class="n">disease_module</span><span class="p">,</span> <span class="n">subgraph</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chloé Bûcheron, Iker Núñez-Carpintero, Mathilde Meyenberg, Enes Sakalli.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
