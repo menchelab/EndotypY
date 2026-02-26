@@ -1,0 +1,627 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EndotypY.visualization &mdash; EndotypY 0.0.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=e3a6060d"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EndotypY
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EndotypY</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EndotypY.visualization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EndotypY.visualization</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>  
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span> 
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.graph_objects</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">go</span> <span class="c1">#type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">plotly.subplots</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_subplots</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gseapy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gp</span> <span class="c1">#type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_enrichr_library</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial.distance</span><span class="w"> </span><span class="kn">import</span> <span class="n">pdist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvexHull</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">combinations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datamapplot</span> <span class="c1">#type: ignore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="plot_endotype">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.visualization.plot_endotype">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_endotype</span><span class="p">(</span><span class="n">endotype</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span><span class="n">size_height</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">size_width</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span><span class="n">node_size</span><span class="o">=</span><span class="s1">&#39;betweenness&#39;</span><span class="p">,</span><span class="n">path_length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">endotype_color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span><span class="n">layout_seed</span><span class="o">=</span><span class="mi">2025</span><span class="p">,</span><span class="n">return_plot</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Draws a subgraph of the PPI network containing the endotype genes and their shortest paths.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -------</span>
+<span class="sd">    endotype: list</span>
+<span class="sd">        List of endotype genes to be highlighted in the graph.</span>
+<span class="sd">    G: networkx.Graph</span>
+<span class="sd">        The Graph object representing the reference network</span>
+<span class="sd">    seed_genes: list</span>
+<span class="sd">        List of seed genes used for endotype identification.</span>
+<span class="sd">    size_height: int, optional</span>
+<span class="sd">        Height of the figure in inches.</span>
+<span class="sd">    size_width: int, optional</span>
+<span class="sd">        Width of the figure in inches.</span>
+<span class="sd">    node_size: str, optional</span>
+<span class="sd">        Determines the centrality measure for size of the nodes in the graph. Options are &#39;betweenness&#39; or &#39;degree&#39;.</span>
+<span class="sd">    path_length: int, optional</span>
+<span class="sd">        The length of the shortest paths to consider between endotype genes. Default is 2.</span>
+<span class="sd">    endotype_color: str, optional</span>
+<span class="sd">        Color used to highlight the endotype genes in the graph. Default is &#39;orange&#39;.</span>
+<span class="sd">    layout_seed: int, optional</span>
+<span class="sd">        Seed for the spring layout of the graph.</span>
+<span class="sd">    return_plot: bool, optional</span>
+<span class="sd">        If True, the function will not plot the graph but will still return the subgraph.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    -------</span>
+<span class="sd">    subgraph: networkx.Graph</span>
+<span class="sd">        The subgraph containing the endotype genes and their shortest paths.    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">G_copy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># Create a copy of the graph to avoid modifying the original</span>
+    <span class="c1"># Compute the edges in the shortest paths between sauna genes</span>
+    <span class="n">sauna</span> <span class="o">=</span> <span class="n">endotype</span>
+    <span class="n">shortest_path_edges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sauna</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sauna</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">sauna</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">G_copy</span> <span class="ow">and</span> <span class="n">sauna</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="n">G_copy</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">nx</span><span class="o">.</span><span class="n">has_path</span><span class="p">(</span><span class="n">G_copy</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">sauna</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target</span><span class="o">=</span><span class="n">sauna</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
+                    <span class="n">path</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">shortest_path</span><span class="p">(</span><span class="n">G_copy</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">sauna</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target</span><span class="o">=</span><span class="n">sauna</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">path_length</span><span class="p">:</span>  <span class="c1"># Check if the path length is within the limit</span>
+                        <span class="c1"># Add edges from the path to the set</span>
+                        <span class="n">shortest_path_edges</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">path</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+
+    <span class="c1"># Create subgraph with only the edges in the shortest paths</span>
+    <span class="n">subgraph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">subgraph</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">shortest_path_edges</span><span class="p">)</span>
+    <span class="c1"># Remove duplicate edges</span>
+
+    <span class="c1"># Limit to the largest connected component</span>
+    <span class="c1">#largest_cc = max(nx.connected_components(subgraph), key=len)</span>
+    <span class="c1">#subgraph = subgraph.subgraph(largest_cc)</span>
+
+    <span class="c1"># Draw the subgraph with improved aesthetics</span>
+    <span class="n">node_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;gray&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sauna</span> <span class="k">else</span> <span class="n">endotype_color</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="n">node_border_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;black&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="s1">&#39;None&#39;</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="n">node_font_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="mi">10</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+
+    <span class="c1"># Draw nodes based on betweenness centrality</span>
+    <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;betweenness&#39;</span><span class="p">:</span>
+        <span class="c1"># Calculate betweenness centrality for node sizes</span>
+        <span class="n">betweenness_centrality</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">betweenness_centrality</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">600</span> <span class="o">*</span> <span class="n">betweenness_centrality</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    
+    <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;degree&#39;</span><span class="p">:</span>
+        <span class="c1"># Calculate degree for node sizes</span>
+        <span class="n">degree_centrality</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">degree</span><span class="p">())</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">600</span><span class="o">*</span> <span class="n">degree_centrality</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+
+    <span class="k">if</span> <span class="n">return_plot</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">size_width</span><span class="p">,</span> <span class="n">size_height</span><span class="p">))</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="n">subgraph</span><span class="p">,</span><span class="n">seed</span><span class="o">=</span><span class="n">layout_seed</span><span class="p">)</span>
+        <span class="c1"># Draw nodes with border colors</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_nodes</span><span class="p">(</span><span class="n">subgraph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="n">node_sizes</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="n">node_colors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">node_border_colors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+
+        <span class="c1"># Draw edges</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_edges</span><span class="p">(</span><span class="n">subgraph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Add labels with custom font sizes</span>
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">node_font_sizes</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">node</span><span class="p">)],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Add title and remove axis</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Network of Endotype Genes&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+    
+        <span class="c1"># Add legend </span>
+        <span class="n">legend_elements</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Endotype Genes&#39;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="n">endotype_color</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Seed Genes&#39;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">legend_elements</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c1"># Add node color as node attribute</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>
+        <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;gray&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sauna</span> <span class="k">else</span> <span class="n">endotype_color</span>
+        <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;origin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;endotype_</span><span class="si">{</span><span class="n">endotype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">sauna</span> <span class="k">else</span> <span class="s1">&#39;Linker gene&#39;</span>
+
+    <span class="k">return</span> <span class="n">subgraph</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<div class="viewcode-block" id="plot_multiple_endotypes">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.visualization.plot_multiple_endotypes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_multiple_endotypes</span><span class="p">(</span><span class="n">endotypes</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span> <span class="n">size_height</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">size_width</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">path_length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">layout_seed</span><span class="o">=</span><span class="mi">2025</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s1">&#39;spring&#39;</span><span class="p">,</span> <span class="n">limit_lcc</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Draws multiple endotypes in a single plot.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -------</span>
+<span class="sd">    endotypes: dict of lists</span>
+<span class="sd">        Dictionary where keys are endotype names and values are lists of endotype genes.</span>
+<span class="sd">    G: networkx.Graph</span>
+<span class="sd">        The Graph object representing the reference network.</span>
+<span class="sd">    seed_genes: list</span>
+<span class="sd">        List of seed genes used for endotype identification.</span>
+<span class="sd">    size_height: int, optional</span>
+<span class="sd">        Height of the figure in inches.</span>
+<span class="sd">    size_width: int, optional</span>
+<span class="sd">        Width of the figure in inches.</span>
+<span class="sd">    node_size: str or int, optional</span>
+<span class="sd">        Determines the centrality measure for size of the nodes in the graph. Options are &#39;betweenness&#39; or &#39;degree&#39;. If integer, it is used as a fixed node size.</span>
+<span class="sd">    path_length: int, optional</span>
+<span class="sd">        The length of the shortest paths to consider between endotype genes. Default is 2.</span>
+<span class="sd">    layout_seed: int, optional</span>
+<span class="sd">        Seed for the spring layout of the graph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    -------</span>
+<span class="sd">    combined_subgraph: networkx.Graph</span>
+<span class="sd">        Combined graph containing all endotypes and their shortest paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Create a local copy of the graph to avoid modifying external variables</span>
+    <span class="n">local_G</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+    <span class="c1"># Generate colors for endotypes</span>
+    <span class="n">endotype_colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">color_palette</span><span class="p">(</span><span class="s2">&quot;hsv&quot;</span><span class="p">,</span> <span class="n">n_colors</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">endotypes</span><span class="p">))</span>
+
+    <span class="c1"># Combine all endotypes into a single graph</span>
+    <span class="n">combined_subgraph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">all_subgraphs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">endotype_name</span><span class="p">,</span> <span class="n">endotype_genes</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">endotypes</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="n">subgraph</span> <span class="o">=</span> <span class="n">plot_endotype</span><span class="p">(</span><span class="n">endotype_genes</span><span class="p">,</span> <span class="n">local_G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span>
+                                    <span class="n">path_length</span><span class="o">=</span><span class="n">path_length</span><span class="p">,</span>
+                                    <span class="n">endotype_color</span><span class="o">=</span><span class="n">endotype_colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layout_seed</span><span class="o">=</span><span class="n">layout_seed</span><span class="p">,</span>
+                                    <span class="n">return_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">all_subgraphs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+        <span class="c1"># Combine the subgraph into the main graph</span>
+        <span class="n">combined_subgraph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">,</span> <span class="n">subgraph</span><span class="p">)</span>
+        
+    <span class="k">for</span> <span class="n">grafo</span> <span class="ow">in</span> <span class="n">all_subgraphs</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">grafo</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>
+                <span class="c1"># Update node attributes for endotype and color</span>
+                <span class="k">if</span> <span class="n">grafo</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;gray&#39;</span><span class="p">:</span>
+                    <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grafo</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span>
+                    <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;endotype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grafo</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;origin&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+    <span class="c1"># Limit to the largest connected component if specified</span>
+    <span class="k">if</span> <span class="n">limit_lcc</span><span class="p">:</span>
+        <span class="n">largest_cc</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">)</span>
+        <span class="n">combined_subgraph</span> <span class="o">=</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">subgraph</span><span class="p">(</span><span class="n">largest_cc</span><span class="p">)</span>
+
+    <span class="c1"># Draw the combined subgraph with improved aesthetics</span>
+    <span class="n">node_colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;color&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="n">node_border_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;black&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="s1">&#39;gray&#39;</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="n">node_font_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="mi">5</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;betweenness&#39;</span><span class="p">:</span>
+        <span class="c1"># Calculate betweenness centrality for node sizes</span>
+        <span class="n">betweenness_centrality</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">betweenness_centrality</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">)</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">600</span> <span class="o">*</span> <span class="n">betweenness_centrality</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;degree&#39;</span><span class="p">:</span>
+        <span class="c1"># Calculate degree for node sizes</span>
+        <span class="n">degree_centrality</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">degree</span><span class="p">())</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span> <span class="o">*</span> <span class="n">degree_centrality</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+    <span class="c1"># if node_size is integer, use it as a fixed node size</span>
+    <span class="k">if</span> <span class="n">node_size</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">600</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="c1"># Use the provided integer as a fixed node size</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node_size</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="n">node_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Use a default fixed node size if node_size is None</span>
+        <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">600</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+    
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">size_width</span><span class="p">,</span> <span class="n">size_height</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">layout</span> <span class="o">==</span> <span class="s1">&#39;spring&#39;</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">layout_seed</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">layout</span> <span class="o">==</span> <span class="s1">&#39;kk&#39;</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">kamada_kawai_layout</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">)</span>
+
+    <span class="c1"># Draw nodes with border colors</span>
+    <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_nodes</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="n">node_sizes</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="n">node_colors</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">node_border_colors</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+    <span class="c1"># Draw edges</span>
+    <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_edges</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Add labels with custom font sizes</span>
+    <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">node_font_sizes</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">combined_subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">node</span><span class="p">)],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+    <span class="c1"># Add title and remove axis</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Network of Multiple Endotypes&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+    <span class="c1"># Add legend indicating the color of each endotype</span>
+    <span class="n">legend_elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Endotype: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">endotypes</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">endotype_colors</span><span class="p">)]</span>
+    <span class="n">legend_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Seed Genes&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">legend_elements</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    
+    <span class="c1"># Save the plot to an in-memory SVG buffer</span>
+    <span class="n">svg_buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">svg_buffer</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;svg&#39;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  <span class="c1"># Close the plot to prevent it from displaying in a low-resolution window</span>
+    
+    <span class="c1"># Display the SVG from the buffer.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">svg_buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">NameError</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Could not display SVG in this environment. The plot is not shown.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">combined_subgraph</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<div class="viewcode-block" id="plot_endotype_grid">
+<a class="viewcode-back" href="../../EndotypY.html#EndotypY.visualization.plot_endotype_grid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_endotype_grid</span><span class="p">(</span><span class="n">endotypes</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span> <span class="n">size_height</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">size_width</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="s1">&#39;degree&#39;</span><span class="p">,</span> 
+                       <span class="n">path_length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">layout_seed</span><span class="o">=</span><span class="mi">2025</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s1">&#39;spring&#39;</span><span class="p">,</span> <span class="n">limit_lcc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+                       <span class="n">enrichr_lib</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">organism</span><span class="o">=</span><span class="s1">&#39;Human&#39;</span><span class="p">,</span> <span class="n">top_terms</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">force_download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+                       <span class="n">gsea_plot_type</span><span class="o">=</span><span class="s1">&#39;dotplot&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Draws multiple endotypes in a grid of subplots using Plotly, with optional GSEA visualization.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -------</span>
+<span class="sd">    endotypes: dict of lists</span>
+<span class="sd">        Dictionary where keys are endotype names and values are lists of endotype genes.</span>
+<span class="sd">    G: networkx.Graph</span>
+<span class="sd">        The Graph object representing the reference network.</span>
+<span class="sd">    seed_genes: list</span>
+<span class="sd">        List of seed genes used for endotype identification.</span>
+<span class="sd">    size_height: int, optional</span>
+<span class="sd">        Height of each subplot in pixels.</span>
+<span class="sd">    size_width: int, optional</span>
+<span class="sd">        Width of each subplot in pixels.</span>
+<span class="sd">    ncols: int, optional</span>
+<span class="sd">        Number of columns in the grid layout.</span>
+<span class="sd">    node_size: str or int, optional</span>
+<span class="sd">        Determines the centrality measure for size of the nodes in the graph. Options are &#39;betweenness&#39; or &#39;degree&#39;. If integer, it is used as a fixed node size.</span>
+<span class="sd">    path_length: int, optional</span>
+<span class="sd">        The length of the shortest paths to consider between endotype genes. Default is 2.</span>
+<span class="sd">    layout: str, optional</span>
+<span class="sd">        The layout algorithm to use for positioning nodes. Options are &#39;spring&#39; or &#39;kk&#39;</span>
+<span class="sd">    layout_seed: int, optional</span>
+<span class="sd">        Seed for the spring layout of the graph.</span>
+<span class="sd">    limit_lcc: bool, optional</span>
+<span class="sd">        If True, limits each endotype subgraph to its largest connected component.</span>
+<span class="sd">    enrichr_lib: str, optional</span>
+<span class="sd">        Name of the Enrichr library to use for GSEA. If None, no GSEA is performed.</span>
+<span class="sd">    organism: str, optional</span>
+<span class="sd">        Organism for GSEA. Default is &#39;Human&#39;.</span>
+<span class="sd">    top_terms: int, optional</span>
+<span class="sd">        Number of top enriched terms to display in plots. Default is 5.</span>
+<span class="sd">    force_download: bool, optional</span>
+<span class="sd">        Force re-download of Enrichr library. Default is False.</span>
+<span class="sd">    gsea_plot_type: str, optional</span>
+<span class="sd">        Type of plot for GSEA results. Options: dotplot and pie. Default is &#39;dotplot&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    -------</span>
+<span class="sd">    fig: plotly.graph_objects.Figure</span>
+<span class="sd">        The Plotly figure containing the grid of endotype plots.</span>
+<span class="sd">    enrichment_results: dict, optional</span>
+<span class="sd">        Dictionary of GSEA results for each endotype (only if enrichr_lib is provided).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">num_endotypes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">endotypes</span><span class="p">)</span>
+    
+    <span class="c1"># Determine subplot structure based on whether GSEA is enabled</span>
+    <span class="k">if</span> <span class="n">enrichr_lib</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Load enrichr library</span>
+        <span class="n">term_library</span> <span class="o">=</span> <span class="n">download_enrichr_library</span><span class="p">(</span><span class="n">enrichr_lib</span><span class="p">,</span> <span class="n">organism</span><span class="o">=</span><span class="n">organism</span><span class="p">,</span> <span class="n">force_download</span><span class="o">=</span><span class="n">force_download</span><span class="p">)</span>
+        
+        <span class="c1"># Each endotype gets 2 columns (network + GSEA plot)</span>
+        <span class="n">total_cols</span> <span class="o">=</span> <span class="n">ncols</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_endotypes</span> <span class="o">+</span> <span class="n">ncols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">ncols</span>
+        
+        <span class="c1"># Create subplot specs with different types based on plot type</span>
+        <span class="n">specs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">gsea_plot_type</span> <span class="o">==</span> <span class="s1">&#39;pie&#39;</span><span class="p">:</span>
+            <span class="n">plot_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;domain&#39;</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plot_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;scatter&#39;</span><span class="p">}</span> <span class="k">if</span> <span class="n">gsea_plot_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;dotplot&#39;</span><span class="p">,</span> <span class="s1">&#39;lollipop&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;bar&#39;</span><span class="p">}</span>
+        
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+            <span class="n">row_specs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncols</span><span class="p">):</span>
+                <span class="n">row_specs</span><span class="o">.</span><span class="n">extend</span><span class="p">([{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;scatter&#39;</span><span class="p">},</span> <span class="n">plot_spec</span><span class="p">])</span>
+            <span class="n">specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row_specs</span><span class="p">)</span>
+        
+        <span class="c1"># Create subplot titles</span>
+        <span class="n">subplot_titles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">endotypes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">subplot_titles</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;Endotype: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;GSEA: </span><span class="si">{</span><span class="n">enrichr_lib</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">])</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">make_subplots</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">total_cols</span><span class="p">,</span> 
+                            <span class="n">specs</span><span class="o">=</span><span class="n">specs</span><span class="p">,</span>
+                            <span class="n">subplot_titles</span><span class="o">=</span><span class="n">subplot_titles</span><span class="p">,</span>
+                            <span class="n">horizontal_spacing</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">vertical_spacing</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                            <span class="n">column_widths</span><span class="o">=</span><span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]</span> <span class="o">*</span> <span class="n">ncols</span><span class="p">)</span>
+        
+        <span class="n">enrichment_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Original layout without GSEA</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">ncols</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_endotypes</span> <span class="o">+</span> <span class="n">cols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">cols</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">make_subplots</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> 
+                            <span class="n">subplot_titles</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;Endotype: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">endotypes</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+                            <span class="n">horizontal_spacing</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">vertical_spacing</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="n">enrichment_results</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">endotype_colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">color_palette</span><span class="p">(</span><span class="s2">&quot;hsv&quot;</span><span class="p">,</span> <span class="n">n_colors</span><span class="o">=</span><span class="n">num_endotypes</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">endotype_name</span><span class="p">,</span> <span class="n">endotype_genes</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">endotypes</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="c1"># Calculate row and column for network plot</span>
+        <span class="k">if</span> <span class="n">enrichr_lib</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="n">ncols</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">network_col</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx</span> <span class="o">%</span> <span class="n">ncols</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">barplot_col</span> <span class="o">=</span> <span class="n">network_col</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="n">ncols</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">network_col</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">ncols</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="c1"># Get subgraph for this endotype</span>
+        <span class="n">subgraph</span> <span class="o">=</span> <span class="n">plot_endotype</span><span class="p">(</span><span class="n">endotype_genes</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">seed_genes</span><span class="p">,</span>
+                                  <span class="n">path_length</span><span class="o">=</span><span class="n">path_length</span><span class="p">,</span>
+                                  <span class="n">endotype_color</span><span class="o">=</span><span class="n">endotype_colors</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                                  <span class="n">layout_seed</span><span class="o">=</span><span class="n">layout_seed</span><span class="p">,</span>
+                                  <span class="n">return_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="c1"># Calculate layout</span>
+        <span class="k">if</span> <span class="n">layout</span> <span class="o">==</span> <span class="s1">&#39;spring&#39;</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="n">subgraph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">layout_seed</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">layout</span> <span class="o">==</span> <span class="s1">&#39;kk&#39;</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">kamada_kawai_layout</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+        
+        <span class="c1"># Calculate node sizes</span>
+        <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;betweenness&#39;</span><span class="p">:</span>
+            <span class="n">betweenness</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">betweenness_centrality</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+            <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">30</span> <span class="o">*</span> <span class="n">betweenness</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;degree&#39;</span><span class="p">:</span>
+            <span class="n">degree</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">degree</span><span class="p">())</span>
+            <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span> <span class="o">*</span> <span class="n">degree</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node_size</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">node_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+        
+        <span class="c1"># Edge trace</span>
+        <span class="n">edge_x</span><span class="p">,</span> <span class="n">edge_y</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">edges</span><span class="p">():</span>
+            <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">edge</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">edge</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="n">edge_x</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+            <span class="n">edge_y</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">y0</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+        
+        <span class="n">edge_trace</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">edge_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">edge_y</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;lines&#39;</span><span class="p">,</span>
+                                <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">),</span>
+                                <span class="n">hoverinfo</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="c1"># Node trace</span>
+        <span class="n">node_x</span> <span class="o">=</span> <span class="p">[</span><span class="n">pos</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        <span class="n">node_y</span> <span class="o">=</span> <span class="p">[</span><span class="n">pos</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        
+        <span class="c1"># Determine node colors: endotype genes get the endotype color, linker genes are gray</span>
+        <span class="n">node_colors_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">endotype_genes</span><span class="p">:</span>
+                <span class="c1"># Endotype genes get their specific color (converted to RGB string)</span>
+                <span class="n">rgb</span> <span class="o">=</span> <span class="n">endotype_colors</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                <span class="n">node_colors_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;rgb(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Linker genes are gray</span>
+                <span class="n">node_colors_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Node border: black for seed genes, none (transparent) for others</span>
+        <span class="n">node_border_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;black&#39;</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="s1">&#39;rgba(0,0,0,0)&#39;</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        <span class="n">node_border_widths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">seed_genes</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()]</span>
+        
+        <span class="n">node_text</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+        
+        <span class="c1"># Scale text size based on node size</span>
+        <span class="k">if</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;betweenness&#39;</span> <span class="ow">or</span> <span class="n">node_size</span> <span class="o">==</span> <span class="s1">&#39;degree&#39;</span><span class="p">:</span>
+            <span class="c1"># Scale text size proportionally to node size</span>
+            <span class="n">text_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">size</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span> <span class="k">for</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">node_sizes</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">text_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+        
+        <span class="n">node_trace</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">node_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">node_y</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;markers+text&#39;</span><span class="p">,</span>
+                                <span class="n">marker</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">node_sizes</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">node_colors_list</span><span class="p">,</span>
+                                           <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">node_border_widths</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">node_border_colors</span><span class="p">)),</span>
+                                <span class="n">text</span><span class="o">=</span><span class="n">node_text</span><span class="p">,</span> <span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;middle center&#39;</span><span class="p">,</span>
+                                <span class="n">textfont</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">text_sizes</span><span class="p">),</span> <span class="n">hoverinfo</span><span class="o">=</span><span class="s1">&#39;text&#39;</span><span class="p">,</span>
+                                <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">edge_trace</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">network_col</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">node_trace</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">network_col</span><span class="p">)</span>
+        
+        <span class="c1"># Update axes for network plot</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="n">showgrid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">zeroline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">network_col</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="n">showgrid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">zeroline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">network_col</span><span class="p">)</span>
+        
+        <span class="c1"># Run GSEA and add plot if enrichr_lib is provided</span>
+        <span class="k">if</span> <span class="n">enrichr_lib</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Perform enrichment analysis</span>
+            <span class="n">enr</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">enrich</span><span class="p">(</span><span class="n">gene_list</span><span class="o">=</span><span class="n">endotype_genes</span><span class="p">,</span>
+                           <span class="n">gene_sets</span><span class="o">=</span><span class="n">term_library</span><span class="p">,</span>
+                           <span class="c1">#organism=organism,</span>
+                           <span class="n">outdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">cutoff</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+                           <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="n">enrichment_results</span><span class="p">[</span><span class="n">endotype_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">enr</span><span class="o">.</span><span class="n">results</span>
+            
+            <span class="c1"># Get top terms - check if results is a DataFrame and not empty</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">enr</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="s1">&#39;empty&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">enr</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="n">top_results</span> <span class="o">=</span> <span class="n">enr</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="n">top_terms</span><span class="p">,</span> <span class="s1">&#39;Adjusted P-value&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># Extract data</span>
+                <span class="n">terms</span> <span class="o">=</span> <span class="n">top_results</span><span class="p">[</span><span class="s1">&#39;Term&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="n">neg_log_pvals</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">top_results</span><span class="p">[</span><span class="s1">&#39;Adjusted P-value&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                <span class="n">gene_counts</span> <span class="o">=</span> <span class="n">top_results</span><span class="p">[</span><span class="s1">&#39;Overlap&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">values</span>
+                <span class="n">genes_in_terms</span> <span class="o">=</span> <span class="n">top_results</span><span class="p">[</span><span class="s1">&#39;Genes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>  <span class="c1"># Get the actual genes for each term</span>
+                
+                <span class="c1"># Truncate long term names</span>
+                <span class="n">terms_short</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="p">[:</span><span class="mi">40</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">40</span> <span class="k">else</span> <span class="n">term</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">]</span>
+                
+                <span class="c1"># Get endotype color as RGB string</span>
+                <span class="n">endotype_rgb</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;rgb(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">endotype_colors</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">endotype_colors</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">endotype_colors</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mi">255</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span>
+                
+                <span class="c1"># Create appropriate plot based on gsea_plot_type                </span>
+                <span class="k">if</span> <span class="n">gsea_plot_type</span> <span class="o">==</span> <span class="s1">&#39;dotplot&#39;</span><span class="p">:</span>
+                    <span class="c1"># Dot plot with gene count as marker size</span>
+                    <span class="n">gsea_trace</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
+                        <span class="n">x</span><span class="o">=</span><span class="n">neg_log_pvals</span><span class="p">,</span>
+                        <span class="n">y</span><span class="o">=</span><span class="n">terms_short</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;markers&#39;</span><span class="p">,</span>
+                        <span class="n">marker</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                            <span class="n">size</span><span class="o">=</span><span class="n">gene_counts</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># Scale for visibility</span>
+                            <span class="n">color</span><span class="o">=</span><span class="n">endotype_rgb</span><span class="p">,</span>
+                            <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkgray&#39;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">customdata</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">gene_counts</span><span class="p">,</span> <span class="n">genes_in_terms</span><span class="p">)),</span>
+                        <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">hovertemplate</span><span class="o">=</span><span class="s1">&#39;&lt;b&gt;%</span><span class="si">{y}</span><span class="s1">&lt;/b&gt;&lt;br&gt;Adjusted p-value (-log10): %</span><span class="si">{x:.2f}</span><span class="s1">&lt;br&gt;Gene count: %</span><span class="si">{customdata[0]}</span><span class="s1">&lt;br&gt;Genes: %</span><span class="si">{customdata[1]}</span><span class="s1">&lt;extra&gt;&lt;/extra&gt;&#39;</span>
+                    <span class="p">)</span>
+                    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">gsea_trace</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">barplot_col</span><span class="p">)</span>
+                    <span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s1">&#39;Adjusted p-value (-log10)&#39;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">barplot_col</span><span class="p">)</span>
+                    <span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="n">showticklabels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">barplot_col</span><span class="p">)</span>
+                
+                <span class="k">elif</span> <span class="n">gsea_plot_type</span> <span class="o">==</span> <span class="s1">&#39;pie&#39;</span><span class="p">:</span>
+                    <span class="c1"># Pie chart</span>
+                    <span class="c1"># Use normalized -log10 p-values as values</span>
+                    <span class="n">pie_trace</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Pie</span><span class="p">(</span>
+                        <span class="n">labels</span><span class="o">=</span><span class="n">terms_short</span><span class="p">,</span>
+                        <span class="n">values</span><span class="o">=</span><span class="n">neg_log_pvals</span><span class="p">,</span>
+                        <span class="n">marker</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                            <span class="n">colors</span><span class="o">=</span><span class="p">[</span><span class="n">endotype_rgb</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">terms_short</span><span class="p">),</span>
+                            <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">textfont</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">8</span><span class="p">),</span>
+                        <span class="n">customdata</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">gene_counts</span><span class="p">,</span> <span class="n">genes_in_terms</span><span class="p">)),</span>
+                        <span class="n">hovertemplate</span><span class="o">=</span><span class="s1">&#39;&lt;b&gt;%</span><span class="si">{label}</span><span class="s1">&lt;/b&gt;&lt;br&gt;Adjusted p-value (-log10): %</span><span class="si">{value:.2f}</span><span class="s1">&lt;br&gt;Gene count: %</span><span class="si">{customdata[0]}</span><span class="s1">&lt;br&gt;Genes: %</span><span class="si">{customdata[1]}</span><span class="s1">&lt;extra&gt;&lt;/extra&gt;&#39;</span><span class="p">,</span>
+                        <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
+                    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">pie_trace</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">barplot_col</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Unsupported plot type</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported gsea_plot_type: </span><span class="si">{</span><span class="n">gsea_plot_type</span><span class="si">}</span><span class="s2">. Supported types are &#39;dotplot&#39; and &#39;pie&#39;.&quot;</span><span class="p">)</span>
+
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No significant enrichment found</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;No significant&lt;br&gt;enrichment&quot;</span><span class="p">,</span>
+                    <span class="n">xref</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;x</span><span class="si">{</span><span class="n">barplot_col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">barplot_col</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span>
+                    <span class="n">yref</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;y</span><span class="si">{</span><span class="n">barplot_col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">barplot_col</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span>
+                    <span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                    <span class="n">showarrow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">font</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">12</span><span class="p">),</span>
+                    <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">barplot_col</span>
+                <span class="p">)</span>
+    
+    <span class="c1"># Update overall layout</span>
+    <span class="k">if</span> <span class="n">enrichr_lib</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">size_height</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">size_width</span> <span class="o">*</span> <span class="n">ncols</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+                          <span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Network of Multiple Endotypes with GSEA&quot;</span><span class="p">,</span> <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">size_height</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">size_width</span> <span class="o">*</span> <span class="n">ncols</span><span class="p">,</span>
+                          <span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Network of Multiple Endotypes&quot;</span><span class="p">,</span> <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Chloé Bûcheron, Iker Núñez-Carpintero, Mathilde Meyenberg, Enes Sakalli.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

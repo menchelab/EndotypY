@@ -1,14 +1,20 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../')) # Points 2 levels up to your code
+sys.path.insert(0, os.path.abspath('../../'))  # Adjust to include your package
 
 extensions = [
-    'sphinx.ext.autodoc',     # Pulls docstrings from code
-    'sphinx.ext.viewcode',    # Adds "source" links to your docs
-    'sphinx.ext.napoleon',    # Support for Google/NumPy style docstrings
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
 ]
+pygments_style = "sphinx"       # enable syntax highlighting
 
-html_theme = 'sphinx_rtd_theme' # This is the classic "Read the Docs" look
+# Napoleon settings for Google/NumPy-style docstrings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -34,5 +40,7 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+html_logo = "_static/logo.png"
