@@ -2,25 +2,32 @@ name: Deploy Docs
 on:
   push:
     branches: [main]
+permissions:
+  contents: write  # Explicitly gives the action permission to create the branch
 jobs:
   build-and-deploy:
-    runs-main: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
-        with: {python-version: '3.10'}
+        with:
+          python-version: '3.10'
 
-      - name: Install Sphinx
-        run: pip install sphinx sphinx-rtd-theme  # Add any other themes/plugins here
+      - name: Install dependencies
+        run: |
+          pip install sphinx sphinx-rtd-theme
+          pip install .  # This installs your package so Sphinx can read it
 
       - name: Build HTML
-        run: sphinx-build -b html docs/source build/html
+        run: |
+          # Build from docs/source into a temporary folder 'public'
+          sphinx-build -b html docs/source public
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/html
+          publish_dir: ./public
