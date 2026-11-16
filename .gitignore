@@ -9,6 +9,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 endotyping_test/
 #kl-tree-cluster-main/
 dev_package_debug.ipynb

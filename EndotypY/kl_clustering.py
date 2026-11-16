@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
-from kl_clustering_analysis.tree.poset_tree import PosetTree #type: ignore
-from scipy.cluster.hierarchy import linkage
+from tree_break_selection.tree.construction import build_tree #type: ignore
+from tree_break_selection.hierarchy_analysis.decomposition.gates.orchestrator import run_gate_annotation_pipeline #type: ignore
+from tree_break_selection.hierarchy_analysis.tree_decomposition import TreeDecomposition #type: ignore
 from scipy.spatial.distance import pdist
 
 
@@ -62,15 +63,22 @@ def kl_clustering_endotypes(data: pd.DataFrame, linkage_method: str = 'complete'
     data = data.astype(int)
 
     # --- Execute the Core Pipeline ---
-    # 2. linkage()
-    Z = linkage(pdist(data.values, metric=distance_metric), method=linkage_method)
-    print("Linkage matrix computed using method:", linkage_method, "and distance metric:", distance_metric)
+    # 2. build_tree() (linkage + PosetTree)
+    tree = build_tree(data, pdist(data.values, metric=distance_metric), linkage_method=linkage_method).tree
+    print("Tree built using linkage method:", linkage_method, "and distance metric:", distance_metric)
 
-    # 3. PosetTree.from_linkage()
-    tree = PosetTree.from_linkage(Z, leaf_names=data.index.tolist())
-    # 4. tree.decompose()
-    decomposition_results = tree.decompose(leaf_data=data, alpha_local=0.05, sibling_alpha=0.05)
-    print("Tree decomposition completed with alpha_local=0.05 and sibling_alpha=0.05")
+    # 3. node distributions + gate annotations
+    tree.populate_node_distributions(data)
+    gate_bundle = run_gate_annotation_pipeline(
+        tree,
+        tree.annotations_df.copy(),
+        leaf_data=data,
+        edge_alpha=alpha,
+        sibling_alpha=alpha,
+    )
+    # 4. decompose_tree()
+    decomposition_results = TreeDecomposition(tree=tree, gate_annotation_bundle=gate_bundle).decompose_tree()
+    print(f"Tree decomposition completed with edge_alpha={alpha} and sibling_alpha={alpha}")
 
     # --- Display Results ---
     print("\n--- Analysis Complete ---")

@@ -4,12 +4,23 @@ A short description of your package.
 
 ## Installation
 
-```sh
-#clone git repo and navigate to directory containing the setup.py file
-pip install .
+EndotypY requires **Python 3.12 or newer**.
 
-#or run this command in your jupyter notebook
-!pip install git+https://github.com/menchelab/EndotypY.git
+With pip:
+
+```sh
+pip install git+https://github.com/menchelab/EndotypY.git
+
+# or, from a clone of this repository
+pip install .
+```
+
+With [uv](https://docs.astral.sh/uv/):
+
+```sh
+uv init --python 3.12 endotypy-analysis
+cd endotypy-analysis
+uv add git+https://github.com/menchelab/EndotypY.git
 ```
 
 ## Documentation

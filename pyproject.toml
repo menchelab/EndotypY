@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "EndotypY"
+version = "0.2.0"
+description = "Network-based identification of disease endotypes"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ email = "mathilde.meyenberg@univie.ac.at" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "gprofiler-official",
+    "networkx",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "scipy",
+    "tqdm",
+    "mygene",
+    "gseapy",
+    "threadpoolctl",
+    "biopython",
+    "nbformat>=4.2.0",
+    "requests",
+    "ipython",
+    "plotly",
+    "biothings-client",
+    "datamapplot",
+    # KL clustering; pinned to a tested commit because the dev branch changes its API
+    "tree-break-selection[viz] @ git+https://github.com/EnesSakalliUniWien/kl-tree-cluster.git@9a7926baa14e5d98e8b184d3baca81caf779dc4c",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/menchelab/EndotypY"
+Documentation = "https://menchelab.github.io/EndotypY/"
+
+[tool.setuptools.packages.find]
+include = ["EndotypY*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
