@@ -36,7 +36,7 @@ dependencies = [
     "biothings-client",
     "datamapplot",
     # KL clustering; pinned to a tested commit because the dev branch changes its API
-    "tree-break-selection[viz] @ git+https://github.com/EnesSakalliUniWien/kl-tree-cluster.git@9a7926baa14e5d98e8b184d3baca81caf779dc4c",
+    "tree-break-selection[viz] @ git+https://github.com/EnesSakalliUniWien/tree-break-selection.git@9a7926baa14e5d98e8b184d3baca81caf779dc4c",
 ]
 
 [project.optional-dependencies]
