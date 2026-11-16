@@ -20,3 +20,11 @@ build/
 build/lib/EndotypY
 Makefile
 make.bat
+
+AOP208/
+CMS_data_iker/
+ISMB2026/
+LBI_evaluation_2026/
+test_aml/
+test_dev.ipynb
+test_dev_AML.ipynb
